@@ -1,0 +1,10 @@
+{
+  "name": "Veltrix Athletic Performance",
+  "description": "Next-generation endurance training platform combining real-time GPS tracking, TrainingPeaks-grade performance analytics (CTL/ATL/TSB, Power/Pace curves), purchasable elite training plans, and Strava-style social challenges.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
