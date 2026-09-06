@@ -904,6 +904,25 @@ export const INITIAL_SEGMENTS: Segment[] = [
 
 export const INITIAL_STRUCTURED_WORKOUTS: StructuredWorkout[] = [
   {
+    id: 'wk-missed-1',
+    date: new Date(Date.now() - 86400 * 1000).toISOString().split('T')[0],
+    title: 'Sweet Spot 3x15min Climber Simulation',
+    sport: 'cycling',
+    plannedDurationMinutes: 75,
+    plannedTSS: 88,
+    description: 'Targeted sub-threshold lactate buffering: 3 blocks of 15min @ 88-92% FTP (260-272W) with 5min Z2 recovery valleys.',
+    structure: [
+      { phase: 'Warmup', durationMinutes: 15, targetZone: 'Z2 Base', targetDescription: '160-200W cadence build' },
+      { phase: 'Interval 1', durationMinutes: 15, targetZone: 'Z4 Sweet Spot', targetDescription: '265W sustained rhythm' },
+      { phase: 'Float Valley', durationMinutes: 5, targetZone: 'Z2 Recovery', targetDescription: '175W active spin' },
+      { phase: 'Interval 2', durationMinutes: 15, targetZone: 'Z4 Sweet Spot', targetDescription: '268W sustained' },
+      { phase: 'Float Valley', durationMinutes: 5, targetZone: 'Z2 Recovery', targetDescription: '175W active spin' },
+      { phase: 'Interval 3', durationMinutes: 15, targetZone: 'Z4 Sweet Spot', targetDescription: '272W strong finish' },
+      { phase: 'Cooldown', durationMinutes: 5, targetZone: 'Z1 Flush', targetDescription: '130W spin' },
+    ],
+    isCompleted: false,
+  },
+  {
     id: 'wk-1',
     date: new Date().toISOString().split('T')[0],
     title: 'Threshold Micro-Bursts (4x [40s ON / 20s OFF])',

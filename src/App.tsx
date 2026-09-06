@@ -14,6 +14,7 @@ import { PerformanceManagementChart } from './components/Analytics/PerformanceMa
 import { PowerPaceDurationCurve } from './components/Analytics/PowerPaceDurationCurve';
 import { HeartRatePowerZones } from './components/Analytics/HeartRatePowerZones';
 import { AIBasePlanModal } from './components/Training/AIBasePlanModal';
+import { MissedWorkoutAlert } from './components/Training/MissedWorkoutAlert';
 import { PurchasePlansView } from './components/Plans/PurchasePlansView';
 import {
   INITIAL_ACTIVITIES,
@@ -35,12 +36,12 @@ import {
   DailyTrainingMetric,
   PurchasedPlanOrder,
 } from './types';
-import { Activity as ActivityIcon, BarChart3, TrendingUp, Zap, Heart, ShoppingBag, ArrowLeftRight } from 'lucide-react';
+import { Activity as ActivityIcon, BarChart3, TrendingUp, Zap, Heart, ShoppingBag, ArrowLeftRight, Calendar } from 'lucide-react';
 
 export default function App() {
   // Core Application State
   const [currentTab, setCurrentTab] = useState<NavTab>('analytics');
-  const [analyticsSubTab, setAnalyticsSubTab] = useState<'dashboard' | 'compare' | 'pmc' | 'curves' | 'zones'>('dashboard');
+  const [analyticsSubTab, setAnalyticsSubTab] = useState<'dashboard' | 'compare_workouts' | 'compare' | 'pmc' | 'curves' | 'zones'>('dashboard');
 
   const [activities, setActivities] = useState<Activity[]>(INITIAL_ACTIVITIES);
   const [athleteProfile, setAthleteProfile] = useState<AthleteProfile>(INITIAL_ATHLETE);
@@ -138,6 +139,57 @@ export default function App() {
     );
   };
 
+  const todayStr = new Date().toISOString().split('T')[0];
+  const missedWorkouts = workouts.filter((w) => !w.isCompleted && w.date < todayStr);
+  const [isMissedAlertDismissed, setIsMissedAlertDismissed] = useState(false);
+
+  const handleRescheduleWorkout = (workoutId: string, newDate: string) => {
+    setWorkouts((prev) =>
+      prev.map((w) => (w.id === workoutId ? { ...w, date: newDate } : w))
+    );
+  };
+
+  const handleConvertToRestDay = (workoutId: string) => {
+    setWorkouts((prev) =>
+      prev.map((w) =>
+        w.id === workoutId
+          ? {
+              ...w,
+              title: `${w.title} (Adapted to Rest Day)`,
+              plannedTSS: 0,
+              isCompleted: true,
+              description: `Adapted rest and recovery day to absorb prior micro-cycle fatigue and reset form.`,
+            }
+          : w
+      )
+    );
+  };
+
+  const handleRemoveWorkout = (workoutId: string) => {
+    setWorkouts((prev) => prev.filter((w) => w.id !== workoutId));
+  };
+
+  const handleSimulateMissedWorkout = () => {
+    const yesterdayDate = new Date(Date.now() - 86400 * 1000).toISOString().split('T')[0];
+    const simulated: StructuredWorkout = {
+      id: `wk-simulated-${Date.now()}`,
+      date: yesterdayDate,
+      title: 'VO2 Max 5x3min Hill Surges',
+      sport: 'running',
+      plannedDurationMinutes: 60,
+      plannedTSS: 80,
+      description: 'High intensity aerobic power development: 5 reps at 3K-5K pace with 3min easy recovery jog.',
+      structure: [
+        { phase: 'Warmup', durationMinutes: 15, targetZone: 'Z2 Base', targetDescription: 'Progressive jog' },
+        { phase: 'VO2 Max Repeats', durationMinutes: 30, targetZone: 'Z5 VO2 Max', targetDescription: '5x 3min @ 3:30/km' },
+        { phase: 'Cooldown', durationMinutes: 15, targetZone: 'Z1 Flush', targetDescription: '15min easy walk/jog' },
+      ],
+      isCompleted: false,
+    };
+    setWorkouts((prev) => [simulated, ...prev]);
+    setIsMissedAlertDismissed(false);
+  };
+
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col font-sans selection:bg-orange-500/30 selection:text-orange-200">
       {/* Global Navigation Header */}
@@ -148,10 +200,27 @@ export default function App() {
         onOpenProfile={() => setIsProfileOpen(true)}
         onOpenAIBasePlan={() => setIsAIBasePlanOpen(true)}
         profile={athleteProfile}
+        missedWorkoutsCount={missedWorkouts.length}
+        onOpenMissedWorkoutsAlert={() => {
+          setCurrentTab('calendar');
+          setIsMissedAlertDismissed(false);
+        }}
       />
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+        {/* Global Missed Workout Alert Banner (Visible across tabs when dismissed is false) */}
+        {missedWorkouts.length > 0 && !isMissedAlertDismissed && currentTab !== 'calendar' && (
+          <MissedWorkoutAlert
+            workouts={workouts}
+            onRescheduleWorkout={handleRescheduleWorkout}
+            onToggleWorkoutCompleted={handleToggleWorkoutCompleted}
+            onConvertToRestDay={handleConvertToRestDay}
+            onRemoveWorkout={handleRemoveWorkout}
+            onSimulateMissedWorkout={handleSimulateMissedWorkout}
+            onDismiss={() => setIsMissedAlertDismissed(true)}
+          />
+        )}
         {/* TAB 1: ACTIVITY FEED */}
         {currentTab === 'feed' && (
           <ActivityFeedView
@@ -184,15 +253,28 @@ export default function App() {
                 </button>
 
                 <button
-                  id="subtab-compare-btn"
-                  onClick={() => setAnalyticsSubTab('compare')}
+                  id="subtab-compare-workouts-btn"
+                  onClick={() => setAnalyticsSubTab('compare_workouts')}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 whitespace-nowrap transition ${
-                    analyticsSubTab === 'compare'
+                    analyticsSubTab === 'compare_workouts'
                       ? 'bg-neutral-800 text-orange-400 shadow-sm border border-neutral-700'
                       : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
                   }`}
                 >
-                  <ArrowLeftRight className="w-4 h-4" />
+                  <ArrowLeftRight className="w-4 h-4 text-orange-400" />
+                  <span>Compare Workouts</span>
+                </button>
+
+                <button
+                  id="subtab-compare-btn"
+                  onClick={() => setAnalyticsSubTab('compare')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 whitespace-nowrap transition ${
+                    analyticsSubTab === 'compare'
+                      ? 'bg-neutral-800 text-sky-400 shadow-sm border border-neutral-700'
+                      : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                  }`}
+                >
+                  <Calendar className="w-4 h-4 text-sky-400" />
                   <span>Compare Periods</span>
                 </button>
 
@@ -256,12 +338,23 @@ export default function App() {
               />
             )}
 
+            {/* Sub-tab: Compare Workouts (Workout vs Workout Telemetry & Splits) */}
+            {analyticsSubTab === 'compare_workouts' && (
+              <PerformanceDashboard
+                activities={activities}
+                profile={athleteProfile}
+                initialViewMode="compare_workouts"
+                selectedActivityId={selectedDashboardWorkoutId}
+                onSelectActivity={(act) => setSelectedActivity(act)}
+              />
+            )}
+
             {/* Sub-tab: Compare Periods (Time Horizons Overlay) */}
             {analyticsSubTab === 'compare' && (
               <PerformanceDashboard
                 activities={activities}
                 profile={athleteProfile}
-                initialViewMode="compare"
+                initialViewMode="compare_periods"
                 selectedActivityId={selectedDashboardWorkoutId}
                 onSelectActivity={(act) => setSelectedActivity(act)}
               />
@@ -305,6 +398,10 @@ export default function App() {
             workouts={workouts}
             onAddWorkout={handleAddWorkout}
             onToggleWorkoutCompleted={handleToggleWorkoutCompleted}
+            onRescheduleWorkout={handleRescheduleWorkout}
+            onConvertToRestDay={handleConvertToRestDay}
+            onRemoveWorkout={handleRemoveWorkout}
+            onSimulateMissedWorkout={handleSimulateMissedWorkout}
             onOpenAIBasePlanModal={() => setIsAIBasePlanOpen(true)}
             onBrowsePlans={() => setCurrentTab('plans')}
             activePlanName={purchasedPlans.find((p) => p.status === 'active')?.planTitle}

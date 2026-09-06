@@ -11,6 +11,7 @@ import {
   Plus,
   Sparkles,
   ShoppingBag,
+  AlertTriangle,
 } from 'lucide-react';
 import { AthleteProfile } from '../types';
 
@@ -23,6 +24,8 @@ interface NavigationProps {
   onOpenProfile: () => void;
   onOpenAIBasePlan?: () => void;
   profile: AthleteProfile;
+  missedWorkoutsCount?: number;
+  onOpenMissedWorkoutsAlert?: () => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -32,6 +35,8 @@ export const Navigation: React.FC<NavigationProps> = ({
   onOpenProfile,
   onOpenAIBasePlan,
   profile,
+  missedWorkoutsCount = 0,
+  onOpenMissedWorkoutsAlert,
 }) => {
   const wKg = (profile.ftpWatts / profile.weightKg).toFixed(1);
 
@@ -39,7 +44,7 @@ export const Navigation: React.FC<NavigationProps> = ({
     { id: 'feed' as NavTab, label: 'Activity Feed', icon: Activity },
     { id: 'analytics' as NavTab, label: 'Performance & PMC', icon: BarChart3 },
     { id: 'challenges' as NavTab, label: 'Challenges & KOMs', icon: Trophy },
-    { id: 'calendar' as NavTab, label: 'Training Calendar', icon: Calendar },
+    { id: 'calendar' as NavTab, label: 'Training Calendar', icon: Calendar, badge: missedWorkoutsCount },
     { id: 'plans' as NavTab, label: 'Training Plans', icon: ShoppingBag },
   ];
 
@@ -78,7 +83,7 @@ export const Navigation: React.FC<NavigationProps> = ({
                   key={item.id}
                   id={`nav-link-${item.id}`}
                   onClick={() => onTabChange(item.id)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold tracking-wide flex items-center gap-2 transition ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold tracking-wide flex items-center gap-2 transition relative ${
                     isActive
                       ? 'bg-neutral-800 text-orange-400 shadow-sm'
                       : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
@@ -86,6 +91,11 @@ export const Navigation: React.FC<NavigationProps> = ({
                 >
                   <Icon className={`w-4 h-4 ${isActive ? 'text-orange-400' : 'text-neutral-500'}`} />
                   <span>{item.label}</span>
+                  {Boolean(item.badge && item.badge > 0) && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-mono font-bold animate-pulse">
+                      {item.badge}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -94,6 +104,22 @@ export const Navigation: React.FC<NavigationProps> = ({
 
         {/* Right Cockpit Actions */}
         <div className="flex items-center gap-2.5">
+          {/* Missed Workout Alert Header Button */}
+          {missedWorkoutsCount > 0 && onOpenMissedWorkoutsAlert && (
+            <button
+              id="nav-missed-workout-alert-btn"
+              onClick={onOpenMissedWorkoutsAlert}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 hover:text-amber-300 text-xs font-mono font-bold transition shadow-sm"
+              title={`${missedWorkoutsCount} missed workout${missedWorkoutsCount > 1 ? 's' : ''} require attention`}
+            >
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+              <span className="hidden sm:inline">Missed Workout</span>
+              <span className="px-1.5 py-0.5 rounded bg-amber-400 text-black text-[10px] font-black leading-none">
+                {missedWorkoutsCount}
+              </span>
+            </button>
+          )}
+
           {/* AI Base Training Plan Trigger */}
           {onOpenAIBasePlan && (
             <button
@@ -148,11 +174,16 @@ export const Navigation: React.FC<NavigationProps> = ({
             <button
               key={item.id}
               onClick={() => onTabChange(item.id)}
-              className={`flex flex-col items-center py-1 px-3 rounded-lg text-[10px] font-medium transition ${
+              className={`flex flex-col items-center py-1 px-3 rounded-lg text-[10px] font-medium transition relative ${
                 isActive ? 'text-orange-400' : 'text-neutral-500 hover:text-neutral-300'
               }`}
             >
-              <Icon className="w-4 h-4 mb-0.5" />
+              <div className="relative">
+                <Icon className="w-4 h-4 mb-0.5" />
+                {Boolean(item.badge && item.badge > 0) && (
+                  <span className="absolute -top-1 -right-2 w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                )}
+              </div>
               <span>{item.label.split(' ')[0]}</span>
             </button>
           );

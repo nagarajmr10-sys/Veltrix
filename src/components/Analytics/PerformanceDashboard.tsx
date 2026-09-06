@@ -40,13 +40,14 @@ import {
 import { Activity, AthleteProfile, SportType } from '../../types';
 import { formatDuration, formatSpeed, formatPace } from '../../utils/geoUtils';
 import { ComparePerformanceView } from './ComparePerformanceView';
+import { CompareWorkoutsView } from './CompareWorkoutsView';
 
 interface PerformanceDashboardProps {
   activities: Activity[];
   profile: AthleteProfile;
   selectedActivityId?: string | null;
   onSelectActivity?: (activity: Activity) => void;
-  initialViewMode?: 'all' | 'hr' | 'elevation' | 'compare';
+  initialViewMode?: 'all' | 'hr' | 'elevation' | 'compare' | 'compare_workouts' | 'compare_periods';
 }
 
 // Physiological HR Zone definitions based on athlete's LTHR
@@ -75,8 +76,23 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
     selectedActivityId || (activities[0]?.id ?? 'all')
   );
   const [selectedSport, setSelectedSport] = useState<string>('all');
-  const [activeViewMode, setActiveViewMode] = useState<'all' | 'hr' | 'elevation' | 'compare'>(
-    initialViewMode
+  const [activeViewMode, setActiveViewMode] = useState<
+    'all' | 'hr' | 'elevation' | 'compare_workouts' | 'compare_periods'
+  >(() => {
+    if (initialViewMode === 'compare' || initialViewMode === 'compare_periods') {
+      return 'compare_periods';
+    }
+    if (initialViewMode === 'compare_workouts') {
+      return 'compare_workouts';
+    }
+    return (initialViewMode as any) || 'all';
+  });
+
+  const [compareWorkoutAId, setCompareWorkoutAId] = useState<string>(
+    selectedActivityId || activities[0]?.id || ''
+  );
+  const [compareWorkoutBId, setCompareWorkoutBId] = useState<string>(
+    activities[1]?.id || activities[0]?.id || ''
   );
   const [customLthr, setCustomLthr] = useState<number>(profile.lthr || 172);
   const [showZoneSettings, setShowZoneSettings] = useState<boolean>(false);
@@ -408,15 +424,28 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
             </button>
 
             <button
-              id="view-compare-mode"
-              onClick={() => setActiveViewMode('compare')}
+              id="view-compare-workouts-mode"
+              onClick={() => setActiveViewMode('compare_workouts')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-                activeViewMode === 'compare'
-                  ? 'bg-orange-500/20 text-orange-300 border border-orange-500/40 shadow-sm'
+                activeViewMode === 'compare_workouts'
+                  ? 'bg-orange-500/20 text-orange-300 border border-orange-500/40 shadow-sm font-bold'
                   : 'text-neutral-400 hover:text-white'
               }`}
             >
               <ArrowLeftRight className="w-3.5 h-3.5 text-orange-400" />
+              <span>Compare Workouts</span>
+            </button>
+
+            <button
+              id="view-compare-periods-mode"
+              onClick={() => setActiveViewMode('compare_periods')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                activeViewMode === 'compare_periods' || activeViewMode === 'compare'
+                  ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5 text-sky-400" />
               <span>Compare Periods</span>
             </button>
 
@@ -449,7 +478,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
         </div>
 
         {/* Filter & Workout Selection Bar */}
-        {activeViewMode !== 'compare' ? (
+        {activeViewMode !== 'compare_workouts' && activeViewMode !== 'compare_periods' && activeViewMode !== 'compare' ? (
           <div className="pt-4 border-t border-neutral-800/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-1.5 text-xs text-neutral-400 mr-1">
@@ -471,6 +500,24 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
                   </option>
                 ))}
               </select>
+
+              {/* Compare Focus Workout directly */}
+              {currentWorkout && (
+                <button
+                  id="compare-current-workout-btn"
+                  onClick={() => {
+                    setCompareWorkoutAId(currentWorkout.id);
+                    const other = activities.find((a) => a.id !== currentWorkout.id);
+                    if (other) setCompareWorkoutBId(other.id);
+                    setActiveViewMode('compare_workouts');
+                  }}
+                  className="px-2.5 py-1.5 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-400 hover:text-orange-300 text-xs font-mono font-semibold flex items-center gap-1.5 transition"
+                  title="Compare this workout head-to-head with another session"
+                >
+                  <ArrowLeftRight className="w-3.5 h-3.5" />
+                  <span>Compare This Workout</span>
+                </button>
+              )}
 
               {/* Sport Filter Pills */}
               <div className="flex items-center gap-1 bg-neutral-950 p-0.5 rounded-lg border border-neutral-800 text-xs">
@@ -506,8 +553,14 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
           <div className="pt-4 border-t border-neutral-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono text-neutral-400">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-orange-400 animate-pulse" />
-              <span className="text-white font-semibold">Compare Mode Active</span>
-              <span>— Overlaying two custom or preset training horizons</span>
+              <span className="text-white font-semibold">
+                {activeViewMode === 'compare_workouts' ? 'Workout Comparison Active' : 'Period Comparison Active'}
+              </span>
+              <span>
+                {activeViewMode === 'compare_workouts'
+                  ? '— Overlaying two individual workouts telemetry & splits'
+                  : '— Overlaying two custom or preset training horizons'}
+              </span>
             </div>
             <button
               onClick={() => setActiveViewMode('all')}
@@ -542,8 +595,17 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
         )}
       </div>
 
-      {/* Render Compare Mode or Single Dashboard Views */}
-      {activeViewMode === 'compare' ? (
+      {/* Render Workout Compare, Period Compare, or Single Dashboard Views */}
+      {activeViewMode === 'compare_workouts' ? (
+        <CompareWorkoutsView
+          activities={activities}
+          profile={profile}
+          initialWorkoutAId={compareWorkoutAId}
+          initialWorkoutBId={compareWorkoutBId}
+          onSelectActivity={onSelectActivity}
+          onBackToDashboard={() => setActiveViewMode('all')}
+        />
+      ) : activeViewMode === 'compare_periods' || activeViewMode === 'compare' ? (
         <ComparePerformanceView
           activities={activities}
           profile={profile}
@@ -1263,6 +1325,21 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
                   <div className="px-2.5 py-1 rounded-lg bg-orange-500/10 border border-orange-500/25 text-orange-400 font-bold">
                     {act.tss} TSS
                   </div>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCompareWorkoutAId(act.id);
+                      const other = activities.find((a) => a.id !== act.id);
+                      if (other) setCompareWorkoutBId(other.id);
+                      setActiveViewMode('compare_workouts');
+                    }}
+                    className="p-1.5 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 hover:text-orange-300 border border-orange-500/25 transition flex items-center gap-1 text-[11px]"
+                    title="Compare this workout head-to-head"
+                  >
+                    <ArrowLeftRight className="w-3.5 h-3.5" />
+                    <span className="hidden md:inline font-mono">Compare</span>
+                  </button>
 
                   <button
                     onClick={(e) => {
