@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Activity,
   BarChart3,
@@ -12,6 +12,11 @@ import {
   Sparkles,
   ShoppingBag,
   AlertTriangle,
+  LogIn,
+  UserPlus,
+  LogOut,
+  ChevronDown,
+  CreditCard,
 } from 'lucide-react';
 import { AthleteProfile } from '../types';
 
@@ -23,9 +28,14 @@ interface NavigationProps {
   onOpenLiveRecord: () => void;
   onOpenProfile: () => void;
   onOpenAIBasePlan?: () => void;
+  onOpenPayment?: () => void;
   profile: AthleteProfile;
   missedWorkoutsCount?: number;
   onOpenMissedWorkoutsAlert?: () => void;
+  isAuthenticated?: boolean;
+  onOpenSignIn?: () => void;
+  onOpenSignUp?: () => void;
+  onSignOut?: () => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -34,10 +44,16 @@ export const Navigation: React.FC<NavigationProps> = ({
   onOpenLiveRecord,
   onOpenProfile,
   onOpenAIBasePlan,
+  onOpenPayment,
   profile,
   missedWorkoutsCount = 0,
   onOpenMissedWorkoutsAlert,
+  isAuthenticated = true,
+  onOpenSignIn,
+  onOpenSignUp,
+  onSignOut,
 }) => {
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const wKg = (profile.ftpWatts / profile.weightKg).toFixed(1);
 
   const navItems = [
@@ -133,11 +149,29 @@ export const Navigation: React.FC<NavigationProps> = ({
             </button>
           )}
 
+          {/* Veltrix Pro Membership / Payment Gateway Trigger */}
+          {onOpenPayment && (
+            <button
+              id="nav-membership-pro-btn"
+              onClick={onOpenPayment}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-mono font-bold transition shadow-sm ${
+                profile.isPro
+                  ? 'bg-neutral-900 border border-amber-500/40 text-amber-300 hover:bg-neutral-850 hover:border-amber-400'
+                  : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-black uppercase tracking-wider shadow-amber-500/20'
+              }`}
+              title={profile.isPro ? 'Manage Veltrix Pro Subscription & Billing' : 'Upgrade to Veltrix Pro ($79/yr)'}
+            >
+              <Sparkles className={`w-3.5 h-3.5 ${profile.isPro ? 'text-amber-400' : 'text-black'}`} />
+              <span className="hidden sm:inline">{profile.isPro ? 'PRO ATHLETE' : 'PAYMENT GATEWAY'}</span>
+              <span className="sm:hidden">{profile.isPro ? 'PRO' : 'PAY'}</span>
+            </button>
+          )}
+
           {/* Main Record Activity Trigger */}
           <button
             id="main-record-btn"
             onClick={onOpenLiveRecord}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-black font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-orange-500/25 transition active:scale-95"
+            className="px-3.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-black font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-orange-500/25 transition active:scale-95"
           >
             <span className="w-2 h-2 rounded-full bg-black animate-pulse" />
             <Radio className="w-4 h-4 stroke-[2.5]" />
@@ -145,23 +179,129 @@ export const Navigation: React.FC<NavigationProps> = ({
             <span className="sm:hidden">Record</span>
           </button>
 
-          {/* Athlete Profile Badge */}
-          <button
-            id="athlete-profile-button"
-            onClick={onOpenProfile}
-            className="flex items-center gap-2.5 p-1.5 pr-3 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 transition"
-            title="View Athlete Profile & Gear"
-          >
-            <img
-              src={profile.avatar}
-              alt={profile.name}
-              className="w-7 h-7 rounded-lg object-cover"
-            />
-            <div className="hidden lg:block text-left text-xs font-mono">
-              <div className="font-bold text-white leading-none truncate max-w-[100px]">{profile.name}</div>
-              <div className="text-[10px] text-neutral-400 mt-0.5">{profile.ftpWatts}W · {wKg} W/kg</div>
+          {/* Authentication State Buttons: Logged In vs Logged Out */}
+          {isAuthenticated ? (
+            <div className="relative">
+              <button
+                id="athlete-profile-button"
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="flex items-center gap-2 p-1.5 pr-2.5 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 transition"
+                title="Athlete Account & Profile"
+              >
+                <img
+                  src={profile.avatar}
+                  alt={profile.name}
+                  className="w-7 h-7 rounded-lg object-cover"
+                />
+                <div className="hidden lg:block text-left text-xs font-mono">
+                  <div className="font-bold text-white leading-none truncate max-w-[90px]">{profile.name}</div>
+                  <div className="text-[10px] text-neutral-400 mt-0.5">{profile.ftpWatts}W · {wKg} W/kg</div>
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-neutral-400" />
+              </button>
+
+              {/* User Dropdown Menu */}
+              {isUserMenuOpen && (
+                <div
+                  id="user-profile-dropdown"
+                  className="absolute right-0 mt-2 w-56 bg-neutral-950 border border-neutral-800 rounded-2xl shadow-2xl py-1.5 z-50 animate-fade-in"
+                  onMouseLeave={() => setIsUserMenuOpen(false)}
+                >
+                  <div className="px-3 py-2 border-b border-neutral-800/80">
+                    <div className="text-xs font-bold text-white truncate">{profile.name}</div>
+                    <div className="text-[10px] font-mono text-neutral-400 truncate">{profile.handle || '@athlete'}</div>
+                    <div className="mt-1 flex items-center gap-1.5">
+                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-orange-500/20 text-orange-400 font-bold">
+                        {profile.ftpWatts}W FTP
+                      </span>
+                      {profile.isPro && (
+                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold">
+                          PRO
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="py-1">
+                    <button
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        onOpenProfile();
+                      }}
+                      className="w-full px-3 py-2 text-left text-xs text-neutral-300 hover:text-white hover:bg-neutral-900 flex items-center gap-2 transition"
+                    >
+                      <User className="w-4 h-4 text-neutral-400" />
+                      <span>Athlete Profile & Gear</span>
+                    </button>
+
+                    {onOpenPayment && (
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onOpenPayment();
+                        }}
+                        className="w-full px-3 py-2 text-left text-xs text-neutral-300 hover:text-white hover:bg-neutral-900 flex items-center gap-2 transition"
+                      >
+                        <CreditCard className="w-4 h-4 text-amber-400" />
+                        <span>Payment Gateway & Billing</span>
+                      </button>
+                    )}
+
+                    {onOpenSignIn && (
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onOpenSignIn();
+                        }}
+                        className="w-full px-3 py-2 text-left text-xs text-neutral-300 hover:text-white hover:bg-neutral-900 flex items-center gap-2 transition"
+                      >
+                        <LogIn className="w-4 h-4 text-sky-400" />
+                        <span>Switch Athlete Account</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {onSignOut && (
+                    <div className="pt-1 border-t border-neutral-800/80">
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onSignOut();
+                        }}
+                        className="w-full px-3 py-2 text-left text-xs text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition"
+                      >
+                        <LogOut className="w-4 h-4 text-rose-400" />
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          </button>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              {onOpenSignIn && (
+                <button
+                  id="nav-sign-in-btn"
+                  onClick={onOpenSignIn}
+                  className="px-3 py-2 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-white text-xs font-mono font-bold flex items-center gap-1.5 transition"
+                >
+                  <LogIn className="w-3.5 h-3.5 text-neutral-400" />
+                  <span>Sign In</span>
+                </button>
+              )}
+              {onOpenSignUp && (
+                <button
+                  id="nav-sign-up-btn"
+                  onClick={onOpenSignUp}
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-orange-400 text-xs font-mono font-bold transition"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Register</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

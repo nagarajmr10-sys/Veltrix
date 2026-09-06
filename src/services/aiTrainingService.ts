@@ -1,4 +1,79 @@
-import { AIBasePlanRequest, AIBaseTrainingPlan, BasePlanWeek, BasePlanWorkout, StructuredWorkout } from '../types';
+import { AIBasePlanRequest, AIBaseTrainingPlan, BasePlanWeek, BasePlanWorkout, StructuredWorkout, DailyTrainingMetric } from '../types';
+
+export interface AIRecoveryInsightResponse {
+  threeSentenceSummary: string;
+  recoveryStatus: 'optimal_freshness' | 'productive_overload' | 'neutral_maintenance' | 'overreaching_alert' | 'transition';
+  statusBadge: string;
+  actionableRecommendation: string;
+  nextSessionGuidance: string;
+  targetTssToday: number;
+  metricsAnalyzed: {
+    ctl: number;
+    atl: number;
+    tsb: number;
+    rampRate: number;
+  };
+  source: 'gemini_3.8_flash' | 'physiological_model';
+  message?: string;
+}
+
+export async function requestAIRecoveryInsights(params: {
+  ctl: number;
+  atl: number;
+  tsb: number;
+  rampRate: number;
+  recentTrends?: DailyTrainingMetric[];
+  focus?: string;
+}): Promise<AIRecoveryInsightResponse> {
+  try {
+    const res = await fetch('/api/ai/recovery-insights', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Server returned ${res.status}: ${res.statusText}`);
+    }
+
+    const data = await res.json();
+    return data;
+  } catch (err: any) {
+    console.error('Error fetching AI recovery insights:', err);
+    // Client-side fallback if network fails
+    const ctl = Math.round(params.ctl);
+    const atl = Math.round(params.atl);
+    const tsb = Math.round(params.tsb);
+    const rampRate = Number(params.rampRate.toFixed(1));
+
+    let s1 = `With a Training Stress Balance of ${tsb} (CTL ${ctl} vs. ATL ${atl}), you are currently in a productive progressive overload state.`;
+    let s2 = `Your recent 7-day ramp rate of ${rampRate > 0 ? '+' : ''}${rampRate} TSS/week reflects steady cardiovascular adaptation within safe physiological limits.`;
+    let s3 = `Prioritize adequate sleep and hydration tonight, and proceed with your scheduled moderate-aerobic session before targeting your next threshold interval block.`;
+
+    if (tsb < -30) {
+      s1 = `With an acute Training Stress Balance of ${tsb} (CTL ${ctl} vs. ATL ${atl}), your fatigue level is significantly elevated into the acute overreaching risk corridor.`;
+      s2 = `Your rapid accumulation of training stress with a ramp rate of ${rampRate > 0 ? '+' : ''}${rampRate} TSS/week is taxing your autonomic nervous system and glycogen reserves.`;
+      s3 = `Prescribe a dedicated active recovery day or complete rest today to prevent overtraining and restore parasympathetic recovery tone.`;
+    } else if (tsb > 5) {
+      s1 = `With a positive Training Stress Balance of +${tsb} alongside an established Chronic Training Load of ${ctl}, your physiology is primed for peak performance and freshness.`;
+      s2 = `Recent tapering has reduced your acute fatigue (ATL: ${atl}) while locking in your aerobic fitness foundation over the last two weeks.`;
+      s3 = `Take advantage of this supercompensation window over the next 24 to 48 hours by keeping volume modest with brief high-cadence neuromuscular openers.`;
+    }
+
+    return {
+      threeSentenceSummary: `${s1} ${s2} ${s3}`,
+      recoveryStatus: tsb < -30 ? 'overreaching_alert' : tsb > 5 ? 'optimal_freshness' : 'productive_overload',
+      statusBadge: tsb < -30 ? 'High Fatigue Risk' : tsb > 5 ? 'Peak Freshness' : 'Productive Overload',
+      actionableRecommendation: s3,
+      nextSessionGuidance: tsb < -30 ? 'Zone 1 Recovery Spin or Rest' : tsb > 5 ? 'Race Openers + Z2' : 'Zone 2 Base / Sweet Spot',
+      targetTssToday: tsb < -30 ? 25 : tsb > 5 ? 45 : 70,
+      metricsAnalyzed: { ctl, atl, tsb, rampRate },
+      source: 'physiological_model',
+    };
+  }
+}
 
 export interface GenerateBasePlanResponse {
   plan: AIBaseTrainingPlan;

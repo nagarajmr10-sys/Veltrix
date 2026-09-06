@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Play,
   Pause,
@@ -18,10 +18,16 @@ import {
   Check,
   RotateCcw,
   Sparkles,
+  Sun,
+  Wind,
+  Thermometer,
+  CloudRain,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Activity, GPSPoint, LapSplit, SportType } from '../../types';
 import { RouteMap } from '../Map/RouteMap';
+import { LiveWeatherCockpit } from './LiveWeatherCockpit';
+import { LiveWeatherData } from '../../services/weatherService';
 import {
   calculateHaversineDistance,
   formatDuration,
@@ -104,6 +110,7 @@ export const LiveRecordModal: React.FC<LiveRecordModalProps> = ({
   const [saveDescription, setSaveDescription] = useState('');
   const [perceivedExertion, setPerceivedExertion] = useState(7);
   const [selectedGear, setSelectedGear] = useState(gearList[0]?.name || 'Primary Equipment');
+  const [liveWeather, setLiveWeather] = useState<LiveWeatherData | null>(null);
 
   // Simulation step tracker
   const simStepRef = useRef(0);
@@ -386,7 +393,15 @@ export const LiveRecordModal: React.FC<LiveRecordModalProps> = ({
       gearName: selectedGear,
       athleteName: 'Alex Rivera',
       athleteAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-      athleteLocation: 'Live Tracked GPS',
+      athleteLocation: liveWeather?.locationName || 'Live Tracked GPS',
+      weather: liveWeather
+        ? {
+            tempC: liveWeather.tempC,
+            condition: liveWeather.condition,
+            windKmh: liveWeather.windSpeedKmh,
+            humidityPct: liveWeather.humidityPct,
+          }
+        : undefined,
       trainingEffectAerobic: Number((3.2 + Math.min(1.7, distanceKm / 20)).toFixed(1)),
       trainingEffectAnaerobic: Number((1.5 + (currentPower > athleteFtp ? 1.4 : 0.6)).toFixed(1)),
       kudosCount: 1,
@@ -436,6 +451,44 @@ export const LiveRecordModal: React.FC<LiveRecordModalProps> = ({
   const hrZone = getHeartRateZone(currentHeartRate, athleteLthr);
   const powerZone = getPowerZone(currentPower, athleteFtp);
   const currentPos = trackPoints.length > 0 ? trackPoints[trackPoints.length - 1] : null;
+
+  // Selected simulation route point fallback when no track points yet
+  const simInitialCoords = useMemo(() => {
+    const route =
+      PRESET_SIMULATION_ROUTES.find((r) => r.id === selectedSimRoute) ||
+      PRESET_SIMULATION_ROUTES[0];
+    return route.generatePoint(0);
+  }, [selectedSimRoute]);
+
+  const activeLat = currentPos
+    ? currentPos.latitude
+    : trackingMode === 'simulation'
+    ? simInitialCoords.lat
+    : undefined;
+
+  const activeLon = currentPos
+    ? currentPos.longitude
+    : trackingMode === 'simulation'
+    ? simInitialCoords.lon
+    : undefined;
+
+  // Calculate current athlete bearing / travel heading in degrees
+  const athleteBearingDeg = useMemo(() => {
+    if (trackPoints.length >= 2) {
+      const p1 = trackPoints[trackPoints.length - 2];
+      const p2 = trackPoints[trackPoints.length - 1];
+      const y =
+        Math.sin(((p2.longitude - p1.longitude) * Math.PI) / 180) *
+        Math.cos((p2.latitude * Math.PI) / 180);
+      const x =
+        Math.cos((p1.latitude * Math.PI) / 180) * Math.sin((p2.latitude * Math.PI) / 180) -
+        Math.sin((p1.latitude * Math.PI) / 180) *
+          Math.cos((p2.latitude * Math.PI) / 180) *
+          Math.cos(((p2.longitude - p1.longitude) * Math.PI) / 180);
+      return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+    }
+    return undefined;
+  }, [trackPoints]);
 
   return (
     <div id="live-record-modal" className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
@@ -510,6 +563,31 @@ export const LiveRecordModal: React.FC<LiveRecordModalProps> = ({
                 <div className="text-2xl font-black font-mono text-orange-400 mt-1">{liveTSS}</div>
               </div>
             </div>
+
+            {/* Weather Encountered Summary Pill */}
+            {liveWeather && (
+              <div className="p-3.5 rounded-xl bg-neutral-900/80 border border-neutral-800 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-neutral-950 border border-neutral-800 text-amber-400 shrink-0">
+                    <Sun className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-white font-bold flex items-center gap-2">
+                      <span>{liveWeather.condition}</span>
+                      <span className="text-neutral-500">·</span>
+                      <span className="text-orange-400 font-bold">{liveWeather.tempC}°C ({liveWeather.tempF}°F)</span>
+                    </div>
+                    <div className="text-[11px] text-neutral-400 mt-0.5">
+                      Wind: {liveWeather.windSpeedKmh} km/h {liveWeather.windDirectionCardinal} (Gusts {liveWeather.windGustsKmh} km/h) · Humidity: {liveWeather.humidityPct}%
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right text-[11px] text-neutral-400">
+                  <div className="text-neutral-200 font-semibold">{liveWeather.locationName}</div>
+                  <div className="text-[10px] text-neutral-500">Recorded Live Weather Conditions</div>
+                </div>
+              </div>
+            )}
 
             {/* Form Inputs */}
             <div className="space-y-4 bg-neutral-900/50 p-5 rounded-xl border border-neutral-800">
@@ -685,6 +763,15 @@ export const LiveRecordModal: React.FC<LiveRecordModalProps> = ({
                 )}
               </div>
             )}
+
+            {/* Real-Time Live Weather Cockpit Widget */}
+            <LiveWeatherCockpit
+              currentLat={activeLat}
+              currentLon={activeLon}
+              athleteBearingDeg={athleteBearingDeg}
+              isRealGps={trackingMode === 'real'}
+              onWeatherDataUpdate={setLiveWeather}
+            />
 
             {/* Garmin Edge / Wahoo Heads-Up Display (HUD) */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">

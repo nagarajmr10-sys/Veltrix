@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Check, Activity, Zap, Heart, Shield, Plus, AlertTriangle } from 'lucide-react';
+import { X, Check, Activity, Zap, Heart, Shield, Plus, AlertTriangle, Sparkles, CreditCard, Receipt, ExternalLink } from 'lucide-react';
 import { AthleteProfile, GearItem } from '../../types';
 
 interface ProfileModalProps {
@@ -9,6 +9,7 @@ interface ProfileModalProps {
   gearList: GearItem[];
   onUpdateProfile: (updated: AthleteProfile) => void;
   onUpdateGear: (updated: GearItem[]) => void;
+  onOpenPayment?: () => void;
 }
 
 export const AthleteProfileModal: React.FC<ProfileModalProps> = ({
@@ -18,6 +19,7 @@ export const AthleteProfileModal: React.FC<ProfileModalProps> = ({
   gearList,
   onUpdateProfile,
   onUpdateGear,
+  onOpenPayment,
 }) => {
   const [ftp, setFtp] = useState(profile.ftpWatts);
   const [lthr, setLthr] = useState(profile.lthr);
@@ -88,6 +90,79 @@ export const AthleteProfileModal: React.FC<ProfileModalProps> = ({
 
         {/* Content */}
         <div className="p-6 overflow-y-auto space-y-6">
+          {/* Membership & Payment Gateway Tier */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-neutral-900 via-neutral-900 to-amber-950/30 border border-amber-500/30 shadow-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-white">
+                      {profile.isPro ? 'Veltrix Pro Athlete Membership' : 'Free Athlete Tier'}
+                    </h3>
+                    {profile.isPro && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-black bg-amber-400 text-black uppercase">
+                        Active PRO
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-neutral-400 mt-0.5 font-mono">
+                    {profile.isPro
+                      ? `${profile.proTier || 'Annual Season Pass'} · Renews ${profile.proRenewalDate || '2027-05-15'}`
+                      : 'Upgrade to unlock full Strava Satellite & Topo maps, unlimited AI training plans & analytics'}
+                  </div>
+                </div>
+              </div>
+
+              {onOpenPayment && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenPayment();
+                  }}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20 transition shrink-0"
+                >
+                  <CreditCard className="w-4 h-4 text-black" />
+                  <span>{profile.isPro ? 'Payment Gateway & Billing' : 'Upgrade to Pro ($79)'}</span>
+                </button>
+              )}
+            </div>
+
+            {/* Past Payment Receipts if any */}
+            {profile.paymentReceipts && profile.paymentReceipts.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-neutral-800/80">
+                <div className="text-[11px] font-mono font-semibold text-neutral-400 mb-1.5 flex items-center gap-1.5">
+                  <Receipt className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Payment Receipts & Invoices</span>
+                </div>
+                <div className="space-y-1.5">
+                  {profile.paymentReceipts.map((rec) => (
+                    <div
+                      key={rec.transactionId}
+                      className="p-2 rounded-lg bg-neutral-950/80 border border-neutral-800 flex items-center justify-between text-xs font-mono"
+                    >
+                      <div>
+                        <div className="text-white font-bold">{rec.itemDescription}</div>
+                        <div className="text-[10px] text-neutral-400">
+                          {new Date(rec.date).toLocaleDateString()} · {rec.transactionId} · {rec.cardBrand ? `${rec.cardBrand} •••• ${rec.cardLast4}` : rec.method}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-amber-400 font-bold">${rec.amount} {rec.currency}</div>
+                        <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 text-[9px] uppercase font-bold">
+                          Paid
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Thresholds & Biometrics */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">

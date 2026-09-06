@@ -99,6 +99,34 @@ export interface Segment {
   polylineCoords: [number, number][];
 }
 
+export type LeaderboardMetricType = 'tss' | 'elevation';
+export type LeaderboardTimeframe = 'month' | 'all_time';
+
+export interface LeaderboardAthlete {
+  id: string;
+  name: string;
+  handle: string;
+  avatar: string;
+  location: string;
+  country: string;
+  flagEmoji: string;
+  team?: string;
+  isCurrentUser?: boolean;
+  isPro?: boolean;
+  primarySport: SportType;
+  monthlyTSS: number;
+  monthlyElevationMeters: number;
+  monthlyDistanceKm: number;
+  monthlyActiveHours: number;
+  monthlyActivitiesCount: number;
+  streakDays: number;
+  rankChange?: number; // e.g. +2, -1, 0
+  ftpWatts?: number;
+  kudosCount: number;
+  hasUserKudoed?: boolean;
+  recentHighlight?: string;
+}
+
 export interface DailyTrainingMetric {
   date: string; // YYYY-MM-DD
   tss: number;
@@ -144,6 +172,7 @@ export interface AthleteProfile {
   avatar: string;
   location: string;
   bio: string;
+  email?: string;
   weightKg: number;
   heightCm: number;
   ftpWatts: number; // Functional Threshold Power
@@ -156,6 +185,26 @@ export interface AthleteProfile {
   totalActivitiesCount: number;
   totalDistanceKm: number;
   totalElevationGainMeters: number;
+  isPro?: boolean;
+  proTier?: string;
+  proRenewalDate?: string;
+  paymentReceipts?: PaymentTransactionReceipt[];
+}
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string;
+  handle: string;
+  isPro: boolean;
+  proTier?: string;
+  primarySport?: SportType;
+  ftpWatts: number;
+  weightKg: number;
+  location: string;
+  token?: string;
+  memberSince: string;
 }
 
 export type BasePlanPhilosophy = 'sweet_spot' | 'polarized' | 'pyramidal' | 'traditional_aerobic';
@@ -311,4 +360,111 @@ export interface PurchasedPlanOrder {
   durationWeeks: number;
   coachName: string;
   avgWeeklyTSS: number;
+}
+
+// Health & Biometrics Telemetry
+export interface HealthBiometricDay {
+  date: string; // YYYY-MM-DD
+  recoveryScore: number; // 0 - 100
+  hrvRmssd: number; // ms
+  hrvBaseline: number; // ms
+  restingHr: number; // bpm
+  sleepHours: number;
+  sleepQualityScore: number; // 0 - 100
+  deepSleepPct: number; // %
+  remSleepPct: number; // %
+  spo2Pct: number; // %
+  respiratoryRate: number; // breaths / min
+  skinTempDeviationCelsius: number; // e.g. -0.2
+  subjectiveSoreness: number; // 1 (fresh) - 5 (severely sore)
+  subjectiveStress: 'low' | 'moderate' | 'high';
+  hydrationLitres: number;
+  weightKg: number;
+  readinessRecommendation: string;
+  syncedWearable?: 'Garmin Connect' | 'Apple Health' | 'Whoop 4.0' | 'Oura Ring Gen 3' | 'Manual Log';
+}
+
+export interface WearableDeviceStatus {
+  id: string;
+  name: string;
+  brand: 'garmin' | 'apple' | 'whoop' | 'oura' | 'wahoo';
+  icon: string;
+  batteryPct: number;
+  lastSyncTime: string;
+  isConnected: boolean;
+  statusMessage: string;
+}
+
+// Performance Stats & Records
+export interface PowerDurationPR {
+  durationLabel: string;
+  seconds: number;
+  watts: number;
+  wattsPerKg: number;
+  dateAchieved: string;
+  activityTitle: string;
+  isAllTimeBest: boolean;
+}
+
+export interface PaceDurationPR {
+  distanceLabel: string;
+  distanceKm: number;
+  paceSecondsPerKm: number;
+  formattedPace: string;
+  totalTime: string;
+  dateAchieved: string;
+  activityTitle: string;
+  isAllTimeBest: boolean;
+}
+
+export interface PerformanceStatsData {
+  ftpWatts: number;
+  wattsPerKg: number;
+  lthrBpm: number;
+  maxHrBpm: number;
+  vo2MaxEstimate: number;
+  aerobicDecouplingPct: number; // Pw:HR drift %
+  efficiencyFactor: number; // NP / Avg HR
+  wPrimeJoules: number; // Anaerobic Work Capacity
+  criticalPowerWatts: number;
+  powerPRs: PowerDurationPR[];
+  pacePRs: PaceDurationPR[];
+  last30Days: {
+    totalDistanceKm: number;
+    totalElevationMeters: number;
+    totalActiveHours: number;
+    totalTSS: number;
+    totalKilojoules: number;
+    avgIntensityFactor: number;
+    cyclingKm: number;
+    runningKm: number;
+    gravelKm: number;
+  };
+  zoneDistribution: {
+    zone: string;
+    hours: number;
+    percentage: number;
+    color: string;
+  }[];
+}
+
+// Payment Gateway Types
+export type PaymentMethodType = 'card' | 'apple_pay' | 'google_pay' | 'paypal' | 'klarna' | 'crypto';
+export type PaymentCurrency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD';
+
+export interface PaymentTransactionReceipt {
+  transactionId: string;
+  orderId: string;
+  date: string;
+  amount: number;
+  currency: PaymentCurrency;
+  method: PaymentMethodType;
+  cardBrand?: string;
+  cardLast4?: string;
+  status: 'succeeded' | 'processing' | 'failed';
+  authorizationCode: string;
+  receiptNumber: string;
+  customerName: string;
+  customerEmail: string;
+  itemDescription: string;
 }

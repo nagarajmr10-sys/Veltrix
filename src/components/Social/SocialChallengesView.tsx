@@ -17,20 +17,25 @@ import {
   Filter,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { Segment, SocialChallenge } from '../../types';
+import { Segment, SocialChallenge, AthleteProfile, Activity } from '../../types';
+import { TopAthleteLeaderboard } from './TopAthleteLeaderboard';
 
 interface ChallengesViewProps {
   challenges: SocialChallenge[];
   segments: Segment[];
   onToggleJoinChallenge: (challengeId: string) => void;
+  currentProfile?: AthleteProfile;
+  activities?: Activity[];
 }
 
 export const SocialChallengesView: React.FC<ChallengesViewProps> = ({
   challenges,
   segments,
   onToggleJoinChallenge,
+  currentProfile,
+  activities = [],
 }) => {
-  const [activeTab, setActiveTab] = useState<'challenges' | 'segments'>('challenges');
+  const [activeTab, setActiveTab] = useState<'leaderboard' | 'challenges' | 'segments'>('leaderboard');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [segmentSearch, setSegmentSearch] = useState('');
 

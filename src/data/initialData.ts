@@ -18,6 +18,27 @@ export const INITIAL_ATHLETE: AthleteProfile = {
   totalActivitiesCount: 428,
   totalDistanceKm: 14850,
   totalElevationGainMeters: 184500,
+  isPro: true,
+  proTier: 'Annual Season Pass ($79/yr)',
+  proRenewalDate: '2027-05-15',
+  paymentReceipts: [
+    {
+      transactionId: 'tx_live_894k209a_7842',
+      orderId: 'ord_vx_849201',
+      date: '2026-05-15T14:32:00Z',
+      amount: 79,
+      currency: 'USD',
+      method: 'card',
+      cardBrand: 'Visa',
+      cardLast4: '4242',
+      status: 'succeeded',
+      authorizationCode: 'AUTH_938102',
+      receiptNumber: 'REC-VELTRIX-2026-4821',
+      customerName: 'Alex Rivera',
+      customerEmail: 'alex.rivera@endurance-veltrix.io',
+      itemDescription: 'Veltrix Pro Athlete Membership (Annual Season Pass)',
+    },
+  ],
 };
 
 export const INITIAL_GEAR: GearItem[] = [

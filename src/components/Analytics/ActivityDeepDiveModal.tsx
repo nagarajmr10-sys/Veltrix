@@ -16,7 +16,7 @@ import {
   Layers,
   Sparkles,
 } from 'lucide-react';
-import { Activity } from '../../types';
+import { Activity, Segment } from '../../types';
 import { RouteMap } from '../Map/RouteMap';
 import {
   formatDuration,
@@ -30,14 +30,17 @@ interface ActivityDeepDiveModalProps {
   activity: Activity | null;
   isOpen: boolean;
   onClose: () => void;
+  segments?: Segment[];
 }
 
 export const ActivityDeepDiveModal: React.FC<ActivityDeepDiveModalProps> = ({
   activity,
   isOpen,
   onClose,
+  segments = [],
 }) => {
   const [hoverPointIndex, setHoverPointIndex] = useState<number | null>(null);
+  const [highlightedSegment, setHighlightedSegment] = useState<Segment | null>(null);
 
   if (!isOpen || !activity) return null;
 
@@ -131,6 +134,34 @@ export const ActivityDeepDiveModal: React.FC<ActivityDeepDiveModalProps> = ({
                   <span>{badge}</span>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Recorded Atmospheric & Weather Conditions */}
+          {activity.weather && (
+            <div className="bg-neutral-900/90 border border-neutral-800 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-lg bg-neutral-950 border border-neutral-800 text-amber-400">
+                  <CloudSun className="w-4 h-4" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-white">{activity.weather.condition}</span>
+                  <span className="text-neutral-500">·</span>
+                  <span className="text-orange-400 font-bold">
+                    {activity.weather.tempC}°C ({((activity.weather.tempC * 9) / 5 + 32).toFixed(1)}°F)
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 text-neutral-400 text-[11px]">
+                <div className="flex items-center gap-1.5">
+                  <Wind className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Wind: {activity.weather.windKmh} km/h ({((activity.weather.windKmh * 0.621371)).toFixed(1)} mph)</span>
+                </div>
+                <div className="text-neutral-400">
+                  Humidity: <strong className="text-neutral-200">{activity.weather.humidityPct}%</strong>
+                </div>
+              </div>
             </div>
           )}
 
@@ -232,8 +263,74 @@ export const ActivityDeepDiveModal: React.FC<ActivityDeepDiveModalProps> = ({
             <RouteMap
               track={track}
               hoveredPointIndex={hoverPointIndex}
-              heightClass="h-64 sm:h-72"
+              heightClass="h-72 sm:h-88"
+              segments={segments}
+              sport={activity.sport}
+              title={activity.title}
+              onHoverPoint={setHoverPointIndex}
+              onSelectSegment={(seg) => setHighlightedSegment(seg)}
             />
+
+            {/* Matched Strava Segments & KOMs */}
+            {segments && segments.length > 0 && (
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold text-neutral-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <Award className="w-4 h-4 text-amber-400" />
+                    <span>Strava Segments & KOM Leaderboard</span>
+                  </h4>
+                  <span className="text-[11px] font-mono text-neutral-500">
+                    {segments.length} segment{segments.length > 1 ? 's' : ''} on route
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  {segments.slice(0, 3).map((seg) => {
+                    const isSelected = highlightedSegment?.id === seg.id;
+                    return (
+                      <div
+                        key={seg.id}
+                        onClick={() => setHighlightedSegment(isSelected ? null : seg)}
+                        className={`p-3 rounded-xl border text-left cursor-pointer transition select-none ${
+                          isSelected
+                            ? 'bg-amber-500/10 border-amber-500/50 shadow-md shadow-amber-500/10'
+                            : 'bg-neutral-900/70 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="font-bold text-xs text-white truncate max-w-[190px]">
+                            {seg.name}
+                          </div>
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-black uppercase bg-amber-400 text-black shrink-0">
+                            {seg.climbCategory}
+                          </span>
+                        </div>
+
+                        <div className="text-[11px] font-mono text-neutral-400 mt-1.5 flex items-center gap-2">
+                          <span>{seg.distanceKm} km</span>
+                          <span>·</span>
+                          <span className="text-neutral-300">{seg.avgGradePct}% grade</span>
+                          <span>·</span>
+                          <span>+{seg.elevationGainMeters}m</span>
+                        </div>
+
+                        <div className="mt-2 pt-2 border-t border-neutral-800/80 flex items-center justify-between text-[10px] font-mono">
+                          <div className="text-neutral-400">
+                            KOM: <strong className="text-amber-300">{seg.komTime}</strong>
+                          </div>
+                          {seg.personalRecordTime && (
+                            <div className="text-emerald-400 font-bold flex items-center gap-1">
+                              <span>PR: {seg.personalRecordTime}</span>
+                              <span className="px-1 py-0.2 rounded bg-emerald-500/20 text-[9px]">#{seg.personalRank || 1}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Interactive Elevation Profile */}
             {hasElevations && (

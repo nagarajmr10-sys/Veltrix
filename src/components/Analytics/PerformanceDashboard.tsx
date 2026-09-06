@@ -36,11 +36,15 @@ import {
   ChevronRight,
   Info,
   ArrowLeftRight,
+  FileText,
 } from 'lucide-react';
-import { Activity, AthleteProfile, SportType } from '../../types';
+import { Activity, AthleteProfile, SportType, DailyTrainingMetric } from '../../types';
 import { formatDuration, formatSpeed, formatPace } from '../../utils/geoUtils';
 import { ComparePerformanceView } from './ComparePerformanceView';
 import { CompareWorkoutsView } from './CompareWorkoutsView';
+import { AIRecoveryInsightsPanel } from './AIRecoveryInsightsPanel';
+import { MonthlyPerformanceReportModal } from './MonthlyPerformanceReportModal';
+import { generateHistoricalPMC } from '../../data/initialData';
 
 interface PerformanceDashboardProps {
   activities: Activity[];
@@ -48,6 +52,8 @@ interface PerformanceDashboardProps {
   selectedActivityId?: string | null;
   onSelectActivity?: (activity: Activity) => void;
   initialViewMode?: 'all' | 'hr' | 'elevation' | 'compare' | 'compare_workouts' | 'compare_periods';
+  pmcMetrics?: DailyTrainingMetric[];
+  onNavigateToPMC?: () => void;
 }
 
 // Physiological HR Zone definitions based on athlete's LTHR
@@ -70,7 +76,13 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
   selectedActivityId = null,
   onSelectActivity,
   initialViewMode = 'all',
+  pmcMetrics,
+  onNavigateToPMC,
 }) => {
+  // PMC metrics data with fallback
+  const resolvedPmcMetrics = useMemo(() => {
+    return pmcMetrics && pmcMetrics.length > 0 ? pmcMetrics : generateHistoricalPMC();
+  }, [pmcMetrics]);
   // Filters & Controls
   const [activeWorkoutId, setActiveWorkoutId] = useState<string>(
     selectedActivityId || (activities[0]?.id ?? 'all')
@@ -96,6 +108,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
   );
   const [customLthr, setCustomLthr] = useState<number>(profile.lthr || 172);
   const [showZoneSettings, setShowZoneSettings] = useState<boolean>(false);
+  const [showReportModal, setShowReportModal] = useState<boolean>(false);
 
   // Filter activities by sport
   const completedWorkouts = useMemo(() => {
@@ -409,70 +422,82 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
             </p>
           </div>
 
-          {/* View Mode Tabs */}
-          <div className="flex flex-wrap items-center gap-1.5 bg-neutral-950 p-1 rounded-xl border border-neutral-800">
-            <button
-              id="view-all-mode"
-              onClick={() => setActiveViewMode('all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                activeViewMode === 'all'
-                  ? 'bg-neutral-800 text-orange-400 shadow-sm'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              Unified Dashboard
-            </button>
+          {/* View Mode Tabs + Export Action */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 bg-neutral-950 p-1 rounded-xl border border-neutral-800">
+              <button
+                id="view-all-mode"
+                onClick={() => setActiveViewMode('all')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  activeViewMode === 'all'
+                    ? 'bg-neutral-800 text-orange-400 shadow-sm'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                Unified Dashboard
+              </button>
+
+              <button
+                id="view-compare-workouts-mode"
+                onClick={() => setActiveViewMode('compare_workouts')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                  activeViewMode === 'compare_workouts'
+                    ? 'bg-orange-500/20 text-orange-300 border border-orange-500/40 shadow-sm font-bold'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <ArrowLeftRight className="w-3.5 h-3.5 text-orange-400" />
+                <span>Compare Workouts</span>
+              </button>
+
+              <button
+                id="view-compare-periods-mode"
+                onClick={() => setActiveViewMode('compare_periods')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                  activeViewMode === 'compare_periods' || activeViewMode === 'compare'
+                    ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5 text-sky-400" />
+                <span>Compare Periods</span>
+              </button>
+
+              <button
+                id="view-hr-mode"
+                onClick={() => setActiveViewMode('hr')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                  activeViewMode === 'hr'
+                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <Heart className="w-3.5 h-3.5 text-rose-400" />
+                <span>Heart Rate Zones</span>
+              </button>
+
+              <button
+                id="view-elevation-mode"
+                onClick={() => setActiveViewMode('elevation')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                  activeViewMode === 'elevation'
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <Mountain className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Elevation & Ascent</span>
+              </button>
+            </div>
 
             <button
-              id="view-compare-workouts-mode"
-              onClick={() => setActiveViewMode('compare_workouts')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-                activeViewMode === 'compare_workouts'
-                  ? 'bg-orange-500/20 text-orange-300 border border-orange-500/40 shadow-sm font-bold'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
+              id="top-export-pdf-report-btn"
+              onClick={() => setShowReportModal(true)}
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-mono font-bold flex items-center gap-1.5 shadow-lg shadow-orange-500/20 transition shrink-0"
+              title="Generate and export monthly performance PDF report with CTL/ATL/TSB and PR achievements"
             >
-              <ArrowLeftRight className="w-3.5 h-3.5 text-orange-400" />
-              <span>Compare Workouts</span>
-            </button>
-
-            <button
-              id="view-compare-periods-mode"
-              onClick={() => setActiveViewMode('compare_periods')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-                activeViewMode === 'compare_periods' || activeViewMode === 'compare'
-                  ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              <Calendar className="w-3.5 h-3.5 text-sky-400" />
-              <span>Compare Periods</span>
-            </button>
-
-            <button
-              id="view-hr-mode"
-              onClick={() => setActiveViewMode('hr')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-                activeViewMode === 'hr'
-                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              <Heart className="w-3.5 h-3.5 text-rose-400" />
-              <span>Heart Rate Zones</span>
-            </button>
-
-            <button
-              id="view-elevation-mode"
-              onClick={() => setActiveViewMode('elevation')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-                activeViewMode === 'elevation'
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              <Mountain className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Elevation & Ascent</span>
+              <FileText className="w-4 h-4" />
+              <span>Export Monthly PDF</span>
             </button>
           </div>
         </div>
@@ -537,7 +562,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
               </div>
             </div>
 
-            {/* LTHR Configuration Toggle */}
+            {/* LTHR Configuration Toggle & Report Action */}
             <div className="flex items-center gap-2">
               <button
                 id="toggle-lthr-settings-btn"
@@ -546,6 +571,16 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
               >
                 <Sliders className="w-3.5 h-3.5 text-orange-400" />
                 <span>LTHR: {customLthr} bpm</span>
+              </button>
+
+              <button
+                id="filter-bar-export-pdf-btn"
+                onClick={() => setShowReportModal(true)}
+                className="text-xs font-mono text-orange-400 hover:text-orange-300 flex items-center gap-1.5 bg-orange-500/10 hover:bg-orange-500/20 px-3 py-1.5 rounded-xl border border-orange-500/30 transition font-bold"
+                title="Open Monthly Performance Report Generator & PDF Export"
+              >
+                <FileText className="w-3.5 h-3.5 text-orange-400" />
+                <span>Monthly Report</span>
               </button>
             </div>
           </div>
@@ -613,6 +648,13 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
         />
       ) : (
         <>
+          {/* AI-Powered Recovery & Training Load Insights Panel */}
+          <AIRecoveryInsightsPanel
+            metrics={resolvedPmcMetrics}
+            onNavigateToPMC={onNavigateToPMC}
+            onExportPDF={() => setShowReportModal(true)}
+          />
+
           {/* Top Telemetry KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 font-mono">
             {/* Total Elevation */}
@@ -1359,6 +1401,14 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
       </div>
     </>
   )}
+  {/* Monthly Performance PDF Report Modal */}
+  <MonthlyPerformanceReportModal
+    isOpen={showReportModal}
+    onClose={() => setShowReportModal(false)}
+    athlete={profile}
+    activities={activities}
+    pmcMetrics={resolvedPmcMetrics}
+  />
 </div>
   );
 };
