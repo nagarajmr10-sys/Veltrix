@@ -192,9 +192,12 @@ export const ActivityFeedView: React.FC<ActivityFeedProps> = ({
                       </div>
                     </div>
                     <div>
-                      <div className="text-[10px] uppercase text-neutral-500 font-sans font-semibold">Time</div>
+                      <div className="text-[10px] uppercase text-neutral-500 font-sans font-semibold">Moving Time</div>
                       <div className="text-xl font-black text-white mt-0.5">
                         {formatDuration(act.movingTimeSeconds || act.durationSeconds)}
+                      </div>
+                      <div className="text-[10px] text-neutral-500 font-sans">
+                        Elapsed: {formatDuration(act.elapsedTimeSeconds || act.durationSeconds)}
                       </div>
                     </div>
                     <div>

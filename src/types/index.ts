@@ -28,8 +28,9 @@ export interface Activity {
   sport: SportType;
   date: string; // ISO date string
   distanceKm: number;
-  durationSeconds: number;
-  movingTimeSeconds: number;
+  durationSeconds: number; // total duration
+  movingTimeSeconds: number; // active rolling/running time
+  elapsedTimeSeconds?: number; // total wall-clock elapsed time (including stops & pauses)
   elevationGainMeters: number;
   avgSpeedKmh: number;
   maxSpeedKmh: number;
@@ -156,14 +157,99 @@ export interface StructuredWorkout {
   completedActivityId?: string;
 }
 
+export type GearCategory = 'bike' | 'shoes' | 'watch' | 'power_meter' | 'chain' | 'cassette' | 'tires' | 'components';
+
 export interface GearItem {
   id: string;
   name: string;
-  type: 'bike' | 'shoes' | 'watch' | 'power_meter';
+  type: GearCategory;
   brandModel: string;
   distanceKm: number;
-  maxDistanceKm: number; // alert threshold
+  maxDistanceKm: number; // alert / service milestone threshold
   isRetired: boolean;
+  serviceMilestoneName?: string; // e.g., 'Chain wear check (0.5% elongation)'
+  lastServiceDate?: string;
+  serviceIntervalKm?: number;
+  notes?: string;
+}
+
+export interface StravaIntegration {
+  isConnected: boolean;
+  athleteId?: string;
+  athleteName?: string;
+  athleteUsername?: string;
+  profileUrl?: string;
+  connectedAt?: string;
+  lastSyncAt?: string;
+  syncedActivitiesCount?: number;
+  syncedSegmentsCount?: number;
+  autoSync?: boolean;
+  scopes?: string[];
+  syncStatus?: 'idle' | 'syncing' | 'synced' | 'error';
+  errorMessage?: string;
+}
+
+export type PlatformBrand = 'strava' | 'garmin' | 'wahoo' | 'zwift' | 'whoop' | 'polar' | 'coros' | 'apple_health' | 'trainingpeaks';
+export type PlatformCategory = 'cloud_platform' | 'wearable' | 'virtual_training' | 'health_ecosystem';
+
+export interface PlatformIntegration {
+  id: string;
+  brand: PlatformBrand;
+  name: string;
+  category: PlatformCategory;
+  description: string;
+  iconName: string;
+  isConnected: boolean;
+  connectedAt?: string;
+  lastSyncAt?: string;
+  accountIdentifier?: string; // e.g., 'alex.rivera@garmin-connect.com'
+  deviceModel?: string; // e.g. 'Garmin Edge 1040 Solar & Forerunner 965'
+  syncStatus?: 'idle' | 'syncing' | 'synced' | 'error';
+  errorMessage?: string;
+  syncedItemsCount?: number;
+  autoSync: boolean;
+  features: string[]; // e.g., ['Auto FIT Sync', 'Garmin Health API', 'Body Battery', 'Edge Course Sync']
+  healthData?: {
+    bodyBattery?: number;
+    hrvStatusMs?: number;
+    sleepScore?: number;
+    recoveryScore?: number;
+    strain?: number;
+    stressLevel?: string;
+  };
+  oauthConfig?: {
+    authUrl?: string;
+    callbackDomain?: string;
+    clientId?: string;
+    scopes?: string[];
+  };
+}
+
+export type HardwareSensorType = 'heart_rate' | 'power_meter' | 'smart_trainer' | 'cadence_speed' | 'gps_head_unit';
+export type ConnectionProtocol = 'bluetooth_ble' | 'ant_plus' | 'wifi' | 'usb_fit';
+
+export interface HardwareSensorDevice {
+  id: string;
+  name: string;
+  brand: string;
+  type: HardwareSensorType;
+  protocol: ConnectionProtocol;
+  model: string;
+  batteryPct: number;
+  isConnected: boolean;
+  signalStrengthDbm: number; // e.g. -58 dBm
+  lastSeen: string;
+  serialOrAntId?: string;
+  firmwareVersion?: string;
+  isCalibrated?: boolean;
+  lastCalibratedAt?: string;
+  calibrationOffset?: number;
+  liveReading?: {
+    primaryValue: number | string;
+    unit: string;
+    secondaryValue?: number | string;
+    secondaryUnit?: string;
+  };
 }
 
 export interface AthleteProfile {
@@ -189,6 +275,9 @@ export interface AthleteProfile {
   proTier?: string;
   proRenewalDate?: string;
   paymentReceipts?: PaymentTransactionReceipt[];
+  stravaIntegration?: StravaIntegration;
+  platformIntegrations?: PlatformIntegration[];
+  hardwareSensors?: HardwareSensorDevice[];
 }
 
 export interface AuthUser {
@@ -467,4 +556,109 @@ export interface PaymentTransactionReceipt {
   customerName: string;
   customerEmail: string;
   itemDescription: string;
+}
+
+// ==========================================
+// TRAINING & PERFORMANCE TRENDS TYPES
+// ==========================================
+export type TrendTimeframe = '4w' | '8w' | '12w' | '24w' | 'season';
+
+export interface WeeklyTrendBucket {
+  weekIndex: number;
+  weekLabel: string;
+  startDate: string;
+  endDate: string;
+  totalTSS: number;
+  totalDistanceKm: number;
+  totalMovingTimeHours: number;
+  totalElapsedTimeHours: number;
+  totalElevationMeters: number;
+  totalKilojoules: number;
+  activitiesCount: number;
+  avgEfficiencyFactor: number; // NP / HR
+  avgDecouplingPct: number; // cardiac drift %
+  endingCTL: number; // Chronic Training Load (Fitness)
+  endingATL: number; // Acute Training Load (Fatigue)
+  endingTSB: number; // Training Stress Balance (Form)
+  rampRate: number; // CTL change over week
+  acwr: number; // Acute:Chronic Workload Ratio (ATL / CTL)
+  sportBreakdown: {
+    cyclingKm: number;
+    runningKm: number;
+    gravelKm: number;
+    trailKm: number;
+  };
+  intensityDistribution: {
+    zone12AerobicPct: number; // % aerobic base (Z1-Z2)
+    zone34ThresholdPct: number; // % sweetspot/threshold (Z3-Z4)
+    zone57HighPct: number; // % VO2max/anaerobic (Z5+)
+  };
+  peakPowerMMP: {
+    p5s?: number;
+    p1m?: number;
+    p5m?: number;
+    p20m?: number;
+    eFtp?: number;
+  };
+}
+
+export interface TrainingTrendsOverview {
+  timeframe: TrendTimeframe;
+  sportFilter: SportType | 'all';
+  totalWorkouts: number;
+  totalTss: number;
+  totalDistanceKm: number;
+  totalMovingHours: number;
+  totalElapsedHours: number;
+  totalElevationMeters: number;
+  totalKilojoules: number;
+  currentCTL: number;
+  startingCTL: number;
+  ctlDelta: number;
+  ctlGrowthPct: number;
+  currentATL: number;
+  currentTSB: number;
+  avgWeeklyTss: number;
+  avgWeeklyHours: number;
+  avgWeeklyKm: number;
+  avgWeeklyElevationMeters: number;
+  avgRampRate: number;
+  avgEfficiencyFactor: number;
+  efDeltaPct: number;
+  avgDecouplingPct: number;
+  currentACWR: number;
+  movingToElapsedRatioPct: number;
+  polarizedRatio: {
+    aerobicPct: number;
+    thresholdPct: number;
+    highIntensityPct: number;
+    isPolarizedCompliant: boolean;
+  };
+  weeklyBuckets: WeeklyTrendBucket[];
+  recentEfficiencyPoints: {
+    date: string;
+    workoutTitle: string;
+    sport: SportType;
+    npWatts: number;
+    avgHr: number;
+    ef: number;
+    decouplingPct: number;
+  }[];
+}
+
+export interface AITrendReport {
+  executiveSummary: string;
+  macroAssessment: string;
+  physiologicalAdaptations: string[];
+  fatigueAndWorkloadRisk: {
+    status: 'optimal' | 'moderate_fatigue' | 'overreaching' | 'recovery_needed';
+    statusLabel: string;
+    acwrScore: number;
+    rampRateSafety: string;
+    description: string;
+  };
+  efficiencyAnalysis: string;
+  fourWeekPrescription: string[];
+  generatedAt: string;
+  source: 'gemini' | 'sports_science_engine';
 }

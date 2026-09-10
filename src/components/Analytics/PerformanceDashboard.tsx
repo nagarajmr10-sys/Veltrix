@@ -54,6 +54,7 @@ interface PerformanceDashboardProps {
   initialViewMode?: 'all' | 'hr' | 'elevation' | 'compare' | 'compare_workouts' | 'compare_periods';
   pmcMetrics?: DailyTrainingMetric[];
   onNavigateToPMC?: () => void;
+  onNavigateToTrends?: () => void;
 }
 
 // Physiological HR Zone definitions based on athlete's LTHR
@@ -78,6 +79,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
   initialViewMode = 'all',
   pmcMetrics,
   onNavigateToPMC,
+  onNavigateToTrends,
 }) => {
   // PMC metrics data with fallback
   const resolvedPmcMetrics = useMemo(() => {
@@ -454,7 +456,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
                 id="view-compare-periods-mode"
                 onClick={() => setActiveViewMode('compare_periods')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-                  activeViewMode === 'compare_periods' || activeViewMode === 'compare'
+                  activeViewMode === 'compare_periods'
                     ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm'
                     : 'text-neutral-400 hover:text-white'
                 }`}
@@ -488,6 +490,18 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
                 <Mountain className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Elevation & Ascent</span>
               </button>
+
+              {onNavigateToTrends && (
+                <button
+                  id="dashboard-goto-trends-btn"
+                  onClick={onNavigateToTrends}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 border border-transparent hover:border-orange-500/30 font-mono"
+                  title="View Macro-Cycle Training & Performance Trends"
+                >
+                  <TrendingUp className="w-3.5 h-3.5 text-orange-400" />
+                  <span>Trends</span>
+                </button>
+              )}
             </div>
 
             <button
@@ -503,7 +517,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
         </div>
 
         {/* Filter & Workout Selection Bar */}
-        {activeViewMode !== 'compare_workouts' && activeViewMode !== 'compare_periods' && activeViewMode !== 'compare' ? (
+        {activeViewMode !== 'compare_workouts' && activeViewMode !== 'compare_periods' ? (
           <div className="pt-4 border-t border-neutral-800/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-1.5 text-xs text-neutral-400 mr-1">
@@ -640,7 +654,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
           onSelectActivity={onSelectActivity}
           onBackToDashboard={() => setActiveViewMode('all')}
         />
-      ) : activeViewMode === 'compare_periods' || activeViewMode === 'compare' ? (
+      ) : activeViewMode === 'compare_periods' ? (
         <ComparePerformanceView
           activities={activities}
           profile={profile}

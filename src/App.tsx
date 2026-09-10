@@ -10,6 +10,7 @@ import { AthleteProfileModal } from './components/Profile/AthleteProfileModal';
 import { LiveRecordModal } from './components/LiveTracker/LiveRecordModal';
 import { ActivityDeepDiveModal } from './components/Analytics/ActivityDeepDiveModal';
 import { PerformanceDashboard } from './components/Analytics/PerformanceDashboard';
+import { TrendsDashboardView } from './components/Analytics/TrendsDashboardView';
 import { PerformanceManagementChart } from './components/Analytics/PerformanceManagementChart';
 import { PowerPaceDurationCurve } from './components/Analytics/PowerPaceDurationCurve';
 import { HeartRatePowerZones } from './components/Analytics/HeartRatePowerZones';
@@ -18,6 +19,7 @@ import { MissedWorkoutAlert } from './components/Training/MissedWorkoutAlert';
 import { PurchasePlansView } from './components/Plans/PurchasePlansView';
 import { PaymentGatewayModal } from './components/Payments/PaymentGatewayModal';
 import { AuthModal } from './components/Auth/AuthModal';
+import { AICoachChatSection } from './components/AI/AICoachChatSection';
 import {
   INITIAL_ACTIVITIES,
   INITIAL_ATHLETE,
@@ -40,12 +42,12 @@ import {
   PaymentTransactionReceipt,
   AuthUser,
 } from './types';
-import { Activity as ActivityIcon, BarChart3, TrendingUp, Zap, Heart, ShoppingBag, ArrowLeftRight, Calendar, UserCheck, LogIn } from 'lucide-react';
+import { Activity as ActivityIcon, BarChart3, TrendingUp, Zap, Heart, ShoppingBag, ArrowLeftRight, Calendar, UserCheck, LogIn, Bot } from 'lucide-react';
 
 export default function App() {
   // Core Application State
   const [currentTab, setCurrentTab] = useState<NavTab>('analytics');
-  const [analyticsSubTab, setAnalyticsSubTab] = useState<'dashboard' | 'compare_workouts' | 'compare' | 'pmc' | 'curves' | 'zones'>('dashboard');
+  const [analyticsSubTab, setAnalyticsSubTab] = useState<'dashboard' | 'trends' | 'compare_workouts' | 'compare' | 'pmc' | 'curves' | 'zones'>('dashboard');
 
   // Authenticated User State (defaults to active athlete Alex Rivera, persisted in localStorage)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
@@ -85,6 +87,7 @@ export default function App() {
   const [selectedDashboardWorkoutId, setSelectedDashboardWorkoutId] = useState<string | null>(null);
   const [isLiveRecordOpen, setIsLiveRecordOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profileInitialTab, setProfileInitialTab] = useState<'gear' | 'integrations' | 'biometrics' | 'billing'>('gear');
   const [isAIBasePlanOpen, setIsAIBasePlanOpen] = useState(false);
   const [isPaymentGatewayOpen, setIsPaymentGatewayOpen] = useState(false);
   const [paymentConfig, setPaymentConfig] = useState<{
@@ -302,7 +305,10 @@ export default function App() {
         currentTab={currentTab}
         onTabChange={(tab) => setCurrentTab(tab)}
         onOpenLiveRecord={() => setIsLiveRecordOpen(true)}
-        onOpenProfile={() => setIsProfileOpen(true)}
+        onOpenProfile={(tab) => {
+          setProfileInitialTab(tab || 'gear');
+          setIsProfileOpen(true);
+        }}
         onOpenAIBasePlan={() => setIsAIBasePlanOpen(true)}
         onOpenPayment={() => handleOpenPaymentGateway()}
         profile={athleteProfile}
@@ -318,7 +324,7 @@ export default function App() {
       />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 pb-24 sm:pb-28">
         {/* Guest Session Notice if signed out */}
         {!currentUser && (
           <div className="p-4 rounded-2xl bg-gradient-to-r from-neutral-900 via-neutral-900 to-orange-950/40 border border-orange-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl animate-fadeIn">
@@ -391,6 +397,19 @@ export default function App() {
                 >
                   <BarChart3 className="w-4 h-4" />
                   <span>Performance Dashboard</span>
+                </button>
+
+                <button
+                  id="subtab-trends-btn"
+                  onClick={() => setAnalyticsSubTab('trends')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 whitespace-nowrap transition ${
+                    analyticsSubTab === 'trends'
+                      ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-black shadow-md shadow-orange-500/20'
+                      : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                  }`}
+                >
+                  <TrendingUp className="w-4 h-4 text-orange-400" />
+                  <span>Trends & Progression</span>
                 </button>
 
                 <button
@@ -478,6 +497,19 @@ export default function App() {
                 onSelectActivity={(act) => setSelectedActivity(act)}
                 pmcMetrics={pmcMetrics}
                 onNavigateToPMC={() => setAnalyticsSubTab('pmc')}
+                onNavigateToTrends={() => setAnalyticsSubTab('trends')}
+              />
+            )}
+
+            {/* Sub-tab: Macro-Cycle Training Trends & Progression */}
+            {analyticsSubTab === 'trends' && (
+              <TrendsDashboardView
+                activities={activities}
+                profile={athleteProfile}
+                pmcMetrics={pmcMetrics}
+                onOpenLiveRecord={() => setIsLiveRecordOpen(true)}
+                onOpenCurves={() => setAnalyticsSubTab('curves')}
+                onOpenZones={() => setAnalyticsSubTab('zones')}
               />
             )}
 
@@ -526,7 +558,18 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 3: CHALLENGES & SEGMENTS */}
+        {/* TAB 3: AI COACH CHAT SECTION */}
+        {currentTab === 'ai_coach' && (
+          <AICoachChatSection
+            profile={athleteProfile}
+            pmcMetrics={pmcMetrics}
+            recentActivities={activities}
+            onAddWorkoutToCalendar={handleAddWorkout}
+            onNavigateToCalendar={() => setCurrentTab('calendar')}
+          />
+        )}
+
+        {/* TAB 4: CHALLENGES & SEGMENTS */}
         {currentTab === 'challenges' && (
           <SocialChallengesView
             challenges={challenges}
@@ -537,7 +580,7 @@ export default function App() {
           />
         )}
 
-        {/* TAB 4: TRAINING CALENDAR */}
+        {/* TAB 5: TRAINING CALENDAR */}
         {currentTab === 'calendar' && (
           <TrainingCalendarView
             workouts={workouts}
@@ -553,7 +596,7 @@ export default function App() {
           />
         )}
 
-        {/* TAB 5: PURCHASE TRAINING PLANS / MARKETPLACE */}
+        {/* TAB 6: PURCHASE TRAINING PLANS / MARKETPLACE */}
         {currentTab === 'plans' && (
           <PurchasePlansView
             purchasedPlans={purchasedPlans}
@@ -563,6 +606,22 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Floating Quick AI Coach Trigger Button */}
+      {currentTab !== 'ai_coach' && (
+        <button
+          id="floating-ai-coach-btn"
+          onClick={() => setCurrentTab('ai_coach')}
+          className="fixed bottom-20 sm:bottom-22 right-6 z-30 px-4 py-2.5 rounded-full bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-black font-bold text-xs tracking-wide flex items-center gap-2 shadow-xl shadow-orange-500/30 hover:scale-105 active:scale-95 transition group"
+          title="Open Veltrix AI Coach"
+        >
+          <div className="w-5 h-5 rounded-full bg-black/20 flex items-center justify-center">
+            <Bot className="w-3.5 h-3.5 text-black" />
+          </div>
+          <span>Chat with AI Coach</span>
+          <span className="w-2 h-2 rounded-full bg-black/40 animate-ping" />
+        </button>
+      )}
 
       {/* MODAL 1: LIVE ACTIVITY RECORDING */}
       <LiveRecordModal
@@ -586,11 +645,34 @@ export default function App() {
       <AthleteProfileModal
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
+        initialTab={profileInitialTab}
         profile={athleteProfile}
         gearList={gearList}
         onUpdateProfile={(upd) => setAthleteProfile(upd)}
         onUpdateGear={(upd) => setGearList(upd)}
         onOpenPayment={() => handleOpenPaymentGateway()}
+        onImportActivity={(newActivity) => {
+          setActivities((prev) => {
+            const exists = prev.some((a) => a.id === newActivity.id);
+            if (exists) {
+              return prev.map((a) => (a.id === newActivity.id ? newActivity : a));
+            }
+            return [newActivity, ...prev];
+          });
+          setSelectedDashboardWorkoutId(newActivity.id);
+        }}
+        onImportStravaData={(newActivities, newSegments) => {
+          setActivities((prev) => {
+            const existingIds = new Set(prev.map((a) => a.id));
+            const fresh = newActivities.filter((a) => !existingIds.has(a.id));
+            return [...fresh, ...prev];
+          });
+          setSegments((prev) => {
+            const existingIds = new Set(prev.map((s) => s.id));
+            const fresh = newSegments.filter((s) => !existingIds.has(s.id));
+            return [...fresh, ...prev];
+          });
+        }}
       />
 
       {/* MODAL 4: AI BASE TRAINING PLAN BUILDER */}
@@ -618,7 +700,7 @@ export default function App() {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         initialMode={authModalInitialMode}
-        onAuthSuccess={handleAuthSuccess}
+        onSuccess={handleAuthSuccess}
       />
     </div>
   );

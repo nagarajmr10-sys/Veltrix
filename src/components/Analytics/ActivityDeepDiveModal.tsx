@@ -166,7 +166,7 @@ export const ActivityDeepDiveModal: React.FC<ActivityDeepDiveModalProps> = ({
           )}
 
           {/* Primary Telemetry Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <div className="p-3.5 rounded-xl bg-neutral-900 border border-neutral-800">
               <div className="text-[11px] uppercase font-semibold text-neutral-400">Distance</div>
               <div className="text-2xl font-black font-mono text-white mt-1">
@@ -179,7 +179,19 @@ export const ActivityDeepDiveModal: React.FC<ActivityDeepDiveModalProps> = ({
               <div className="text-2xl font-black font-mono text-white mt-1">
                 {formatDuration(activity.movingTimeSeconds || activity.durationSeconds)}
               </div>
-              <div className="text-[10px] text-neutral-500 font-mono mt-0.5">Elapsed: {formatDuration(activity.durationSeconds)}</div>
+              <div className="text-[10px] text-emerald-400 font-mono mt-0.5">Active Motion</div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-neutral-900 border border-neutral-800">
+              <div className="text-[11px] uppercase font-semibold text-neutral-400">Elapsed Time</div>
+              <div className="text-2xl font-black font-mono text-neutral-300 mt-1">
+                {formatDuration(activity.elapsedTimeSeconds || activity.durationSeconds)}
+              </div>
+              {Boolean((activity.elapsedTimeSeconds || activity.durationSeconds) > (activity.movingTimeSeconds || activity.durationSeconds)) && (
+                <div className="text-[10px] text-amber-400 font-mono mt-0.5">
+                  +{formatDuration((activity.elapsedTimeSeconds || activity.durationSeconds) - (activity.movingTimeSeconds || activity.durationSeconds))} paused
+                </div>
+              )}
             </div>
 
             <div className="p-3.5 rounded-xl bg-neutral-900 border border-neutral-800">
@@ -193,7 +205,7 @@ export const ActivityDeepDiveModal: React.FC<ActivityDeepDiveModalProps> = ({
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-neutral-900 border border-neutral-800">
+            <div className="p-3.5 rounded-xl bg-neutral-900 border border-neutral-800 col-span-2 sm:col-span-1">
               <div className="text-[11px] uppercase font-semibold text-neutral-400">Elevation Gain</div>
               <div className="text-2xl font-black font-mono text-emerald-400 mt-1">
                 +{activity.elevationGainMeters} <span className="text-xs text-neutral-500 font-sans">m</span>

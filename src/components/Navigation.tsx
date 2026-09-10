@@ -17,16 +17,19 @@ import {
   LogOut,
   ChevronDown,
   CreditCard,
+  Watch,
+  Bot,
+  MessageSquare,
 } from 'lucide-react';
 import { AthleteProfile } from '../types';
 
-export type NavTab = 'feed' | 'analytics' | 'challenges' | 'calendar' | 'plans';
+export type NavTab = 'feed' | 'analytics' | 'challenges' | 'calendar' | 'plans' | 'ai_coach';
 
 interface NavigationProps {
   currentTab: NavTab;
   onTabChange: (tab: NavTab) => void;
   onOpenLiveRecord: () => void;
-  onOpenProfile: () => void;
+  onOpenProfile: (tab?: 'gear' | 'integrations' | 'biometrics' | 'billing') => void;
   onOpenAIBasePlan?: () => void;
   onOpenPayment?: () => void;
   profile: AthleteProfile;
@@ -57,66 +60,41 @@ export const Navigation: React.FC<NavigationProps> = ({
   const wKg = (profile.ftpWatts / profile.weightKg).toFixed(1);
 
   const navItems = [
-    { id: 'feed' as NavTab, label: 'Activity Feed', icon: Activity },
-    { id: 'analytics' as NavTab, label: 'Performance & PMC', icon: BarChart3 },
-    { id: 'challenges' as NavTab, label: 'Challenges & KOMs', icon: Trophy },
-    { id: 'calendar' as NavTab, label: 'Training Calendar', icon: Calendar, badge: missedWorkoutsCount },
-    { id: 'plans' as NavTab, label: 'Training Plans', icon: ShoppingBag },
+    { id: 'feed' as NavTab, label: 'Activity Feed', shortLabel: 'Feed', icon: Activity },
+    { id: 'analytics' as NavTab, label: 'Performance & PMC', shortLabel: 'Analytics', icon: BarChart3 },
+    { id: 'ai_coach' as NavTab, label: 'AI Coach', shortLabel: 'AI Coach', icon: Bot, isAi: true },
+    { id: 'challenges' as NavTab, label: 'Challenges & KOMs', shortLabel: 'Challenges', icon: Trophy },
+    { id: 'calendar' as NavTab, label: 'Training Calendar', shortLabel: 'Calendar', icon: Calendar, badge: missedWorkoutsCount },
+    { id: 'plans' as NavTab, label: 'Training Plans', shortLabel: 'Plans', icon: ShoppingBag },
   ];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-xl">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand Logo */}
-        <div className="flex items-center gap-8">
-          <div
-            onClick={() => onTabChange('feed')}
-            className="flex items-center gap-2.5 cursor-pointer group select-none"
-          >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-400 p-0.5 shadow-lg shadow-orange-500/20 group-hover:scale-105 transition">
-              <div className="w-full h-full bg-neutral-950 rounded-[10px] flex items-center justify-center">
-                <Flame className="w-5 h-5 text-orange-500 group-hover:text-orange-400 transition" />
+    <>
+      {/* Top Cockpit Header: Brand Logo & Cockpit Controls */}
+      <header className="sticky top-0 z-40 w-full border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          {/* Brand Logo */}
+          <div className="flex items-center gap-8">
+            <div
+              onClick={() => onTabChange('feed')}
+              className="flex items-center gap-2.5 cursor-pointer group select-none"
+            >
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-400 p-0.5 shadow-lg shadow-orange-500/20 group-hover:scale-105 transition">
+                <div className="w-full h-full bg-neutral-950 rounded-[10px] flex items-center justify-center">
+                  <Flame className="w-5 h-5 text-orange-500 group-hover:text-orange-400 transition" />
+                </div>
+              </div>
+              <div>
+                <span className="text-xl font-black tracking-wider text-white font-mono flex items-center gap-1">
+                  VELTRIX
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                </span>
+                <span className="block text-[9px] font-mono tracking-widest text-neutral-400 -mt-1 uppercase">
+                  Endurance Intelligence
+                </span>
               </div>
             </div>
-            <div>
-              <span className="text-xl font-black tracking-wider text-white font-mono flex items-center gap-1">
-                VELTRIX
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-              </span>
-              <span className="block text-[9px] font-mono tracking-widest text-neutral-400 -mt-1 uppercase">
-                Endurance Intelligence
-              </span>
-            </div>
           </div>
-
-          {/* Desktop Nav Links */}
-          <nav className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = currentTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  id={`nav-link-${item.id}`}
-                  onClick={() => onTabChange(item.id)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold tracking-wide flex items-center gap-2 transition relative ${
-                    isActive
-                      ? 'bg-neutral-800 text-orange-400 shadow-sm'
-                      : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-orange-400' : 'text-neutral-500'}`} />
-                  <span>{item.label}</span>
-                  {Boolean(item.badge && item.badge > 0) && (
-                    <span className="px-1.5 py-0.2 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-mono font-bold animate-pulse">
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
 
         {/* Right Cockpit Actions */}
         <div className="flex items-center gap-2.5">
@@ -224,6 +202,7 @@ export const Navigation: React.FC<NavigationProps> = ({
 
                   <div className="py-1">
                     <button
+                      id="nav-user-profile-btn"
                       onClick={() => {
                         setIsUserMenuOpen(false);
                         onOpenProfile();
@@ -231,7 +210,25 @@ export const Navigation: React.FC<NavigationProps> = ({
                       className="w-full px-3 py-2 text-left text-xs text-neutral-300 hover:text-white hover:bg-neutral-900 flex items-center gap-2 transition"
                     >
                       <User className="w-4 h-4 text-neutral-400" />
-                      <span>Athlete Profile & Gear</span>
+                      <span>Athlete Profile & Gear Vault</span>
+                    </button>
+
+                    <button
+                      id="nav-user-devices-btn"
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        onOpenProfile('integrations');
+                      }}
+                      className="w-full px-3 py-2 text-left text-xs text-neutral-300 hover:text-white hover:bg-neutral-900 flex items-center justify-between transition"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Watch className="w-4 h-4 text-cyan-400" />
+                        <span>Devices & Ecosystems</span>
+                      </div>
+                      <span className="flex items-center gap-1 text-[10px] font-mono text-cyan-400 font-bold bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
+                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                        {(profile.platformIntegrations?.filter(p => p.isConnected).length || 0) + (profile.hardwareSensors?.filter(s => s.isConnected).length || 0)} Connected
+                      </span>
                     </button>
 
                     {onOpenPayment && (
@@ -256,7 +253,20 @@ export const Navigation: React.FC<NavigationProps> = ({
                         className="w-full px-3 py-2 text-left text-xs text-neutral-300 hover:text-white hover:bg-neutral-900 flex items-center gap-2 transition"
                       >
                         <LogIn className="w-4 h-4 text-sky-400" />
-                        <span>Switch Athlete Account</span>
+                        <span>Sign In / Switch Account</span>
+                      </button>
+                    )}
+
+                    {onOpenSignUp && (
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onOpenSignUp();
+                        }}
+                        className="w-full px-3 py-2 text-left text-xs text-neutral-300 hover:text-white hover:bg-neutral-900 flex items-center gap-2 transition"
+                      >
+                        <UserPlus className="w-4 h-4 text-orange-400" />
+                        <span>Sign Up New Athlete</span>
                       </button>
                     )}
                   </div>
@@ -304,31 +314,65 @@ export const Navigation: React.FC<NavigationProps> = ({
           )}
         </div>
       </div>
-
-      {/* Mobile Bottom Navigation Bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-neutral-950/95 border-t border-neutral-800 backdrop-blur-lg px-2 py-1.5 flex items-center justify-around">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = currentTab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => onTabChange(item.id)}
-              className={`flex flex-col items-center py-1 px-3 rounded-lg text-[10px] font-medium transition relative ${
-                isActive ? 'text-orange-400' : 'text-neutral-500 hover:text-neutral-300'
-              }`}
-            >
-              <div className="relative">
-                <Icon className="w-4 h-4 mb-0.5" />
-                {Boolean(item.badge && item.badge > 0) && (
-                  <span className="absolute -top-1 -right-2 w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                )}
-              </div>
-              <span>{item.label.split(' ')[0]}</span>
-            </button>
-          );
-        })}
-      </div>
     </header>
+
+      {/* Universal Bottom Navigation Bar for All Devices */}
+      <nav
+        id="bottom-app-navigation-bar"
+        aria-label="Application Tabs"
+        className="fixed bottom-0 inset-x-0 z-40 bg-neutral-950/95 border-t border-neutral-800/90 backdrop-blur-xl shadow-[0_-8px_25px_rgba(0,0,0,0.6)]"
+      >
+        <div className="max-w-6xl mx-auto px-2 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-around sm:justify-center sm:gap-2 md:gap-3 py-1.5 sm:py-2">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = currentTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  id={`nav-link-${item.id}`}
+                  onClick={() => onTabChange(item.id)}
+                  className={`relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-semibold tracking-wide transition select-none group ${
+                    isActive
+                      ? 'bg-neutral-900 text-orange-400 border border-orange-500/30 shadow-md shadow-orange-500/10'
+                      : 'text-neutral-400 hover:text-white hover:bg-neutral-900/60 border border-transparent'
+                  }`}
+                  title={item.label}
+                >
+                  {/* Active Indicator Top Accent Bar */}
+                  {isActive && (
+                    <span className="absolute -top-1.5 sm:-top-2 left-1/2 -translate-x-1/2 w-8 sm:w-12 h-0.5 bg-gradient-to-r from-orange-500 to-amber-400 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
+                  )}
+
+                  <div className="relative flex items-center justify-center">
+                    <Icon
+                      className={`w-4 h-4 sm:w-4 sm:h-4 transition-transform group-hover:scale-110 ${
+                        isActive ? 'text-orange-400' : 'text-neutral-400 group-hover:text-neutral-200'
+                      }`}
+                    />
+                    {Boolean(item.badge && item.badge > 0) && (
+                      <span className="sm:hidden absolute -top-1.5 -right-2 px-1 py-0.2 rounded-full bg-amber-400 text-black text-[9px] font-mono font-bold animate-pulse">
+                        {item.badge}
+                      </span>
+                    )}
+                  </div>
+
+                  <span className="text-[10px] sm:text-xs font-semibold whitespace-nowrap">
+                    <span className="sm:hidden">{item.shortLabel}</span>
+                    <span className="hidden sm:inline">{item.label}</span>
+                  </span>
+
+                  {Boolean(item.badge && item.badge > 0) && (
+                    <span className="hidden sm:inline-flex items-center px-1.5 py-0.2 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-mono font-bold animate-pulse">
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </nav>
+    </>
   );
 };
