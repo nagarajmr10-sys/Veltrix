@@ -269,13 +269,31 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   // Center/fit bounds helper
   const handleFitRoute = useCallback(() => {
     const map = mapInstanceRef.current;
-    if (!map || !track || track.length === 0) return;
-    const latlngs: [number, number][] = track.map((p) => [p.latitude, p.longitude]);
-    const bounds = L.latLngBounds(latlngs);
-    if (bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [40, 40], maxZoom: zoomLevel || 16, animate: true });
+    if (!map) return;
+    try {
+      if (track && track.length > 1) {
+        const latlngs: [number, number][] = track.map((p) => [p.latitude, p.longitude]);
+        const bounds = L.latLngBounds(latlngs);
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, { padding: [40, 40], maxZoom: zoomLevel || 16, animate: true });
+          return;
+        }
+      }
+      if (track && track.length === 1) {
+        map.setView([track[0].latitude, track[0].longitude], zoomLevel || 15);
+        return;
+      }
+      if (currentPosition) {
+        map.setView([currentPosition.latitude, currentPosition.longitude], zoomLevel || 15);
+        return;
+      }
+    } catch {
+      // fallback safe center
+      if (track && track.length > 0) {
+        map.setView([track[0].latitude, track[0].longitude], zoomLevel || 14);
+      }
     }
-  }, [track, zoomLevel]);
+  }, [track, currentPosition, zoomLevel]);
 
   // Initialize Leaflet Map
   useEffect(() => {
@@ -286,12 +304,27 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       mapInstanceRef.current = null;
     }
 
+    // Determine initial center and zoom so map is ALWAYS initialized with valid coordinates
+    const initialCenter: [number, number] =
+      currentPosition
+        ? [currentPosition.latitude, currentPosition.longitude]
+        : track && track.length > 0
+        ? [track[0].latitude, track[0].longitude]
+        : [37.7749, -122.4194]; // Default fallback coordinate (San Francisco)
+
+    const initialZoom = zoomLevel || (track && track.length > 1 ? 14 : 14);
+
     const map = L.map(mapContainerRef.current, {
+      center: initialCenter,
+      zoom: initialZoom,
       zoomControl: false,
       dragging: interactive,
       scrollWheelZoom: false,
       attributionControl: false,
     });
+
+    // Ensure map state is explicitly loaded with initial center and zoom
+    map.setView(initialCenter, initialZoom);
 
     // Add zoom control at bottom right like Strava
     if (interactive) {
@@ -317,12 +350,18 @@ export const RouteMap: React.FC<RouteMapProps> = ({
     mapInstanceRef.current = map;
 
     // Initial fit
-    if (track && track.length > 0) {
-      const latlngs: [number, number][] = track.map((p) => [p.latitude, p.longitude]);
-      const bounds = L.latLngBounds(latlngs);
-      if (bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [35, 35], maxZoom: zoomLevel || 15 });
+    if (track && track.length > 1) {
+      try {
+        const latlngs: [number, number][] = track.map((p) => [p.latitude, p.longitude]);
+        const bounds = L.latLngBounds(latlngs);
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, { padding: [35, 35], maxZoom: zoomLevel || 15 });
+        }
+      } catch {
+        map.setView(initialCenter, initialZoom);
       }
+    } else if (track && track.length === 1) {
+      map.setView([track[0].latitude, track[0].longitude], initialZoom);
     }
 
     return () => {
@@ -332,6 +371,26 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       }
     };
   }, [interactive]);
+
+  // Re-fit map when track updates
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !track || track.length === 0) return;
+
+    try {
+      if (track.length > 1) {
+        const latlngs: [number, number][] = track.map((p) => [p.latitude, p.longitude]);
+        const bounds = L.latLngBounds(latlngs);
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, { padding: [35, 35], maxZoom: zoomLevel || 15 });
+        }
+      } else if (track.length === 1) {
+        map.setView([track[0].latitude, track[0].longitude], zoomLevel || 15);
+      }
+    } catch {
+      // ignore
+    }
+  }, [track, zoomLevel]);
 
   // Change Basemap Tile Layer dynamically
   useEffect(() => {
@@ -596,23 +655,42 @@ export const RouteMap: React.FC<RouteMapProps> = ({
     if (currentPosition) {
       const pos: [number, number] = [currentPosition.latitude, currentPosition.longitude];
 
-      if (!liveMarkerRef.current) {
-        liveMarkerRef.current = L.circleMarker(pos, {
-          radius: 9,
-          fillColor: '#3b82f6',
-          fillOpacity: 1,
-          color: '#ffffff',
-          weight: 3,
-        }).addTo(map);
-      } else {
-        liveMarkerRef.current.setLatLng(pos);
+      try {
+        if (!liveMarkerRef.current) {
+          liveMarkerRef.current = L.circleMarker(pos, {
+            radius: 9,
+            fillColor: '#3b82f6',
+            fillOpacity: 1,
+            color: '#ffffff',
+            weight: 3,
+          }).addTo(map);
+        } else {
+          liveMarkerRef.current.setLatLng(pos);
+        }
+
+        // Safely pan or setView without throwing if map center is in transition
+        // @ts-ignore
+        if (map._loaded) {
+          map.panTo(pos, { animate: true, duration: 0.8 });
+        } else {
+          map.setView(pos, zoomLevel || 15);
+        }
+      } catch {
+        try {
+          map.setView(pos, zoomLevel || 15);
+        } catch {
+          // ignore
+        }
       }
-      map.panTo(pos, { animate: true, duration: 0.8 });
     } else if (liveMarkerRef.current) {
-      map.removeLayer(liveMarkerRef.current);
+      try {
+        map.removeLayer(liveMarkerRef.current);
+      } catch {
+        // ignore
+      }
       liveMarkerRef.current = null;
     }
-  }, [currentPosition]);
+  }, [currentPosition, zoomLevel]);
 
   // Update Synchronized Scrubber Beacon Pin
   useEffect(() => {
@@ -645,14 +723,45 @@ export const RouteMap: React.FC<RouteMapProps> = ({
     }
   }, [hoveredPointIndex, track]);
 
-  // Invalidate map size on fullscreen toggle or container change
+  // Invalidate map size on fullscreen toggle, container change or resize
   useEffect(() => {
+    const container = mapContainerRef.current;
+    if (!container) return;
+
+    const ro = new ResizeObserver(() => {
+      if (mapInstanceRef.current) {
+        try {
+          mapInstanceRef.current.invalidateSize();
+        } catch {
+          // ignore
+        }
+      }
+    });
+
+    try {
+      ro.observe(container);
+    } catch {
+      // ignore
+    }
+
     const timer = setTimeout(() => {
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.invalidateSize();
+        try {
+          mapInstanceRef.current.invalidateSize();
+        } catch {
+          // ignore
+        }
       }
     }, 200);
-    return () => clearTimeout(timer);
+
+    return () => {
+      clearTimeout(timer);
+      try {
+        ro.disconnect();
+      } catch {
+        // ignore
+      }
+    };
   }, [isFullscreen, heightClass]);
 
   return (

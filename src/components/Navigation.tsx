@@ -60,12 +60,12 @@ export const Navigation: React.FC<NavigationProps> = ({
   const wKg = (profile.ftpWatts / profile.weightKg).toFixed(1);
 
   const navItems = [
-    { id: 'feed' as NavTab, label: 'Activity Feed', shortLabel: 'Feed', icon: Activity },
-    { id: 'analytics' as NavTab, label: 'Performance & PMC', shortLabel: 'Analytics', icon: BarChart3 },
-    { id: 'ai_coach' as NavTab, label: 'AI Coach', shortLabel: 'AI Coach', icon: Bot, isAi: true },
-    { id: 'challenges' as NavTab, label: 'Challenges & KOMs', shortLabel: 'Challenges', icon: Trophy },
-    { id: 'calendar' as NavTab, label: 'Training Calendar', shortLabel: 'Calendar', icon: Calendar, badge: missedWorkoutsCount },
-    { id: 'plans' as NavTab, label: 'Training Plans', shortLabel: 'Plans', icon: ShoppingBag },
+    { id: 'feed' as NavTab, label: 'Activity Feed', shortLabel: 'Activity Feed', mobileLabel: 'Feed', icon: Activity },
+    { id: 'analytics' as NavTab, label: 'Performance & Training', shortLabel: 'Performance & Training', mobileLabel: 'Performance & Training', icon: BarChart3 },
+    { id: 'ai_coach' as NavTab, label: 'AI Coach', shortLabel: 'AI Coach', mobileLabel: 'AI Coach', icon: Bot, isAi: true },
+    { id: 'challenges' as NavTab, label: 'Challenges & KOMs', shortLabel: 'Challenges', mobileLabel: 'Challenges', icon: Trophy },
+    { id: 'calendar' as NavTab, label: 'Training Calendar', shortLabel: 'Training Calendar', mobileLabel: 'Calendar', icon: Calendar, badge: missedWorkoutsCount },
+    { id: 'plans' as NavTab, label: 'Training Plans', shortLabel: 'Training Plans', mobileLabel: 'Plans', icon: ShoppingBag },
   ];
 
   return (
@@ -73,11 +73,11 @@ export const Navigation: React.FC<NavigationProps> = ({
       {/* Top Cockpit Header: Brand Logo & Cockpit Controls */}
       <header className="sticky top-0 z-40 w-full border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          {/* Brand Logo */}
-          <div className="flex items-center gap-8">
+          {/* Brand Logo & Desktop Navigation */}
+          <div className="flex items-center gap-6 xl:gap-8">
             <div
               onClick={() => onTabChange('feed')}
-              className="flex items-center gap-2.5 cursor-pointer group select-none"
+              className="flex items-center gap-2.5 cursor-pointer group select-none shrink-0"
             >
               <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-400 p-0.5 shadow-lg shadow-orange-500/20 group-hover:scale-105 transition">
                 <div className="w-full h-full bg-neutral-950 rounded-[10px] flex items-center justify-center">
@@ -94,6 +94,35 @@ export const Navigation: React.FC<NavigationProps> = ({
                 </span>
               </div>
             </div>
+
+            {/* Desktop Nav Links in Header */}
+            <nav className="hidden lg:flex items-center gap-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = currentTab === item.id;
+                return (
+                  <button
+                    key={`top-${item.id}`}
+                    id={`top-nav-link-${item.id}`}
+                    onClick={() => onTabChange(item.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold tracking-wide flex items-center gap-1.5 transition relative select-none whitespace-nowrap ${
+                      isActive
+                        ? 'bg-neutral-800 text-orange-400 shadow-sm border border-neutral-700/80'
+                        : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
+                    }`}
+                    title={item.label}
+                  >
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-orange-400' : 'text-neutral-500'}`} />
+                    <span>{item.label}</span>
+                    {Boolean(item.badge && item.badge > 0) && (
+                      <span className="px-1.5 py-0.2 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-mono font-bold animate-pulse">
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
           </div>
 
         {/* Right Cockpit Actions */}
@@ -322,8 +351,8 @@ export const Navigation: React.FC<NavigationProps> = ({
         aria-label="Application Tabs"
         className="fixed bottom-0 inset-x-0 z-40 bg-neutral-950/95 border-t border-neutral-800/90 backdrop-blur-xl shadow-[0_-8px_25px_rgba(0,0,0,0.6)]"
       >
-        <div className="max-w-6xl mx-auto px-2 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-around sm:justify-center sm:gap-2 md:gap-3 py-1.5 sm:py-2">
+        <div className="max-w-6xl mx-auto px-1 sm:px-4 lg:px-8">
+          <div className="flex items-center justify-between sm:justify-center sm:gap-1.5 md:gap-2.5 py-1.5 sm:py-2 overflow-x-auto no-scrollbar">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentTab === item.id;
@@ -332,7 +361,7 @@ export const Navigation: React.FC<NavigationProps> = ({
                   key={item.id}
                   id={`nav-link-${item.id}`}
                   onClick={() => onTabChange(item.id)}
-                  className={`relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-semibold tracking-wide transition select-none group ${
+                  className={`relative flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1.5 sm:px-2.5 md:px-3.5 py-1 sm:py-1.5 rounded-xl text-xs font-semibold tracking-wide transition select-none group shrink-0 ${
                     isActive
                       ? 'bg-neutral-900 text-orange-400 border border-orange-500/30 shadow-md shadow-orange-500/10'
                       : 'text-neutral-400 hover:text-white hover:bg-neutral-900/60 border border-transparent'
@@ -351,14 +380,16 @@ export const Navigation: React.FC<NavigationProps> = ({
                       }`}
                     />
                     {Boolean(item.badge && item.badge > 0) && (
-                      <span className="sm:hidden absolute -top-1.5 -right-2 px-1 py-0.2 rounded-full bg-amber-400 text-black text-[9px] font-mono font-bold animate-pulse">
+                      <span className="sm:hidden absolute -top-1 -right-2 px-1 py-0.2 rounded-full bg-amber-400 text-black text-[9px] font-mono font-bold animate-pulse">
                         {item.badge}
                       </span>
                     )}
                   </div>
 
-                  <span className="text-[10px] sm:text-xs font-semibold whitespace-nowrap">
-                    <span className="sm:hidden">{item.shortLabel}</span>
+                  <span className="text-[9px] sm:text-xs font-semibold text-center leading-tight whitespace-nowrap">
+                    <span className="sm:hidden">
+                      {item.id === 'analytics' ? 'Performance & Training' : item.mobileLabel}
+                    </span>
                     <span className="hidden sm:inline">{item.label}</span>
                   </span>
 
