@@ -100,7 +100,7 @@ export interface Segment {
   polylineCoords: [number, number][];
 }
 
-export type LeaderboardMetricType = 'tss' | 'elevation';
+export type LeaderboardMetricType = 'tss' | 'elevation' | 'distance' | 'hours' | 'steps';
 export type LeaderboardTimeframe = 'month' | 'all_time';
 
 export interface LeaderboardAthlete {
@@ -120,6 +120,8 @@ export interface LeaderboardAthlete {
   monthlyDistanceKm: number;
   monthlyActiveHours: number;
   monthlyActivitiesCount: number;
+  dailySteps?: number;
+  monthlySteps?: number;
   streakDays: number;
   rankChange?: number; // e.g. +2, -1, 0
   ftpWatts?: number;
@@ -268,6 +270,9 @@ export interface AthleteProfile {
   lthr: number; // Lactate Threshold Heart Rate
   vo2Max: number;
   weeklyGoalKm: number;
+  weeklyTssGoal?: number;
+  todaySteps?: number;
+  dailyStepGoal?: number;
   totalActivitiesCount: number;
   totalDistanceKm: number;
   totalElevationGainMeters: number;

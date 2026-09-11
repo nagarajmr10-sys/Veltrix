@@ -362,23 +362,63 @@ export const AIBasePlanModal: React.FC<AIBasePlanModalProps> = ({
                       <label className="text-xs font-bold uppercase tracking-wider text-neutral-300">
                         Target Weekly Training Volume
                       </label>
-                      <span className="text-xs font-mono font-bold text-orange-400">
-                        {targetWeeklyHours} Hours / Week
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setTargetWeeklyHours((prev) => Math.max(3, prev - 1))}
+                          className="w-6 h-6 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-bold flex items-center justify-center transition"
+                          title="Decrease 1 hour"
+                        >
+                          -
+                        </button>
+                        <span className="text-xs font-mono font-bold text-orange-400 min-w-[5.5rem] text-center">
+                          {targetWeeklyHours} Hours / Week
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setTargetWeeklyHours((prev) => Math.min(25, prev + 1))}
+                          className="w-6 h-6 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-bold flex items-center justify-center transition"
+                          title="Increase 1 hour"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Range Slider */}
                     <input
                       type="range"
-                      min={4}
-                      max={18}
+                      min={3}
+                      max={22}
                       step={1}
                       value={targetWeeklyHours}
                       onChange={(e) => setTargetWeeklyHours(Number(e.target.value))}
-                      className="w-full accent-orange-500 cursor-pointer"
+                      className="w-full accent-orange-500 cursor-pointer h-2 bg-neutral-800 rounded-lg"
                     />
+
+                    {/* Quick Preset Buttons */}
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                      <span className="text-[10px] font-mono text-neutral-500 mr-1">Presets:</span>
+                      {[4, 6, 8, 10, 12, 14, 16].map((hours) => (
+                        <button
+                          key={hours}
+                          type="button"
+                          onClick={() => setTargetWeeklyHours(hours)}
+                          className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition ${
+                            targetWeeklyHours === hours
+                              ? 'bg-orange-500 text-black shadow-sm'
+                              : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-300'
+                          }`}
+                        >
+                          {hours}h
+                        </button>
+                      ))}
+                    </div>
+
                     <div className="flex justify-between text-[10px] font-mono text-neutral-500 mt-1">
-                      <span>4 hrs (Low Volume)</span>
-                      <span>8-10 hrs (Mid Volume)</span>
-                      <span>18 hrs (High Volume)</span>
+                      <span>3-5 hrs (Time-Crunched)</span>
+                      <span>8-10 hrs (Standard Base)</span>
+                      <span>15+ hrs (Elite/Pro)</span>
                     </div>
                   </div>
 

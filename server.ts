@@ -48,20 +48,16 @@ function generateDeterministicBasePlan(req: AIBasePlanRequest): AIBaseTrainingPl
   } = req;
 
   const wPerKg = (athleteFtpWatts / athleteWeightKg).toFixed(2);
-  const baseTssPerHour = philosophy === 'sweet_spot' ? 62 : philosophy === 'polarized' ? 52 : 56;
-  const initialWeeklyTSS = Math.round(targetWeeklyHours * baseTssPerHour);
-
   const weeklyTSSProgression: number[] = [];
   const weeks: BasePlanWeek[] = [];
 
-  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const roundTo5 = (mins: number, minVal = 20) => Math.max(minVal, Math.round(mins / 5) * 5);
 
   for (let w = 1; w <= totalWeeks; w++) {
     const isRecoveryWeek = w % 4 === 0 || w === totalWeeks;
-    const factor = isRecoveryWeek ? 0.65 : 1 + (w - 1) * 0.06;
-    const weekTSS = Math.round(initialWeeklyTSS * factor);
-    const weekHours = Number((targetWeeklyHours * (isRecoveryWeek ? 0.7 : 1 + (w - 1) * 0.04)).toFixed(1));
-    weeklyTSSProgression.push(weekTSS);
+    const progressionFactor = isRecoveryWeek ? 0.65 : 1 + (w - 1) * 0.04;
+    const weekHours = Number((targetWeeklyHours * progressionFactor).toFixed(1));
+    const totalWeekMinutes = Math.round(weekHours * 60);
 
     const theme = isRecoveryWeek
       ? `Week ${w}: Recovery & Mitochondrial Adaptation`
@@ -85,6 +81,11 @@ function generateDeterministicBasePlan(req: AIBasePlanRequest): AIBaseTrainingPl
 
     // Schedule 7 days
     if (isRecoveryWeek) {
+      const tueMin = roundTo5(totalWeekMinutes * 0.20, 20);
+      const thuMin = roundTo5(totalWeekMinutes * 0.32, 25);
+      const satMin = roundTo5(totalWeekMinutes * 0.30, 25);
+      const sunMin = Math.max(20, totalWeekMinutes - (tueMin + thuMin + satMin));
+
       // Monday: Rest
       workouts.push({
         dayOfWeek: 'Monday',
@@ -104,15 +105,15 @@ function generateDeterministicBasePlan(req: AIBasePlanRequest): AIBaseTrainingPl
         dayOffset: 1,
         title: 'Aerobic Flush & Spin',
         sport,
-        durationMinutes: 45,
-        plannedTSS: 25,
+        durationMinutes: tueMin,
+        plannedTSS: Math.round((tueMin / 60) * 35),
         intensity: 'Recovery',
         targetZone: 'Z1 Active Recovery (<55% FTP)',
         description: 'High cadence spin (95-100 RPM) to promote active blood flow without autonomic fatigue.',
         intervalStructure: [
-          { phase: 'Warmup', durationMinutes: 10, targetZone: 'Z1 Active Recovery', targetDescription: 'Progressive easy spin' },
-          { phase: 'Spin Ups', durationMinutes: 25, targetZone: 'Z1 High Cadence', targetDescription: '95-105 RPM smooth pedal stroke' },
-          { phase: 'Cooldown', durationMinutes: 10, targetZone: 'Z1 Flush', targetDescription: 'Gentle deceleration' },
+          { phase: 'Warmup', durationMinutes: Math.round(tueMin * 0.25), targetZone: 'Z1 Active Recovery', targetDescription: 'Progressive easy spin' },
+          { phase: 'Spin Ups', durationMinutes: Math.round(tueMin * 0.55), targetZone: 'Z1 High Cadence', targetDescription: '95-105 RPM smooth pedal stroke' },
+          { phase: 'Cooldown', durationMinutes: Math.round(tueMin * 0.20), targetZone: 'Z1 Flush', targetDescription: 'Gentle deceleration' },
         ],
       });
       // Wednesday: Rest
@@ -134,15 +135,15 @@ function generateDeterministicBasePlan(req: AIBasePlanRequest): AIBaseTrainingPl
         dayOffset: 3,
         title: 'Easy Aerobic Base Check',
         sport,
-        durationMinutes: 60,
-        plannedTSS: 40,
+        durationMinutes: thuMin,
+        plannedTSS: Math.round((thuMin / 60) * 45),
         intensity: 'Endurance',
         targetZone: 'Z2 Aerobic Base (60-70% FTP)',
         description: 'Smooth endurance effort maintaining steady aerobic breathing below LTHR.',
         intervalStructure: [
-          { phase: 'Warmup', durationMinutes: 10, targetZone: 'Z1 Recovery', targetDescription: 'Gradual ramp' },
-          { phase: 'Steady Base', durationMinutes: 40, targetZone: 'Z2 Aerobic Base', targetDescription: 'Steady fat burning rhythm' },
-          { phase: 'Cooldown', durationMinutes: 10, targetZone: 'Z1 Recovery', targetDescription: 'Easy spin down' },
+          { phase: 'Warmup', durationMinutes: Math.round(thuMin * 0.2), targetZone: 'Z1 Recovery', targetDescription: 'Gradual ramp' },
+          { phase: 'Steady Base', durationMinutes: Math.round(thuMin * 0.65), targetZone: 'Z2 Aerobic Base', targetDescription: 'Steady fat burning rhythm' },
+          { phase: 'Cooldown', durationMinutes: Math.round(thuMin * 0.15), targetZone: 'Z1 Recovery', targetDescription: 'Easy spin down' },
         ],
       });
       // Friday: Rest
@@ -164,15 +165,15 @@ function generateDeterministicBasePlan(req: AIBasePlanRequest): AIBaseTrainingPl
         dayOffset: 5,
         title: 'Endurance Coffee Ride / Run',
         sport,
-        durationMinutes: 90,
-        plannedTSS: 65,
+        durationMinutes: satMin,
+        plannedTSS: Math.round((satMin / 60) * 50),
         intensity: 'Endurance',
         targetZone: 'Z2 Aerobic Base (65% FTP)',
         description: 'Relaxed aerobic volume with friends or solo, keeping heart rate well under zone 3.',
         intervalStructure: [
-          { phase: 'Warmup', durationMinutes: 15, targetZone: 'Z1-Z2', targetDescription: 'Easy warm pace' },
-          { phase: 'Main Base', durationMinutes: 65, targetZone: 'Z2 Aerobic', targetDescription: 'Conversational pace' },
-          { phase: 'Cooldown', durationMinutes: 10, targetZone: 'Z1 Flush', targetDescription: 'Easy spin' },
+          { phase: 'Warmup', durationMinutes: Math.round(satMin * 0.18), targetZone: 'Z1-Z2', targetDescription: 'Easy warm pace' },
+          { phase: 'Main Base', durationMinutes: Math.round(satMin * 0.67), targetZone: 'Z2 Aerobic', targetDescription: 'Conversational pace' },
+          { phase: 'Cooldown', durationMinutes: Math.round(satMin * 0.15), targetZone: 'Z1 Flush', targetDescription: 'Easy spin' },
         ],
       });
       // Sunday: Ramp Test or Easy Foundation
@@ -181,19 +182,25 @@ function generateDeterministicBasePlan(req: AIBasePlanRequest): AIBaseTrainingPl
         dayOffset: 6,
         title: w === totalWeeks ? 'Final Benchmark Ramp Test' : 'Aerobic Maintenance Spin',
         sport,
-        durationMinutes: 60,
-        plannedTSS: 50,
+        durationMinutes: sunMin,
+        plannedTSS: Math.round((sunMin / 60) * (w === totalWeeks ? 70 : 45)),
         intensity: w === totalWeeks ? 'Threshold' : 'Endurance',
         targetZone: w === totalWeeks ? 'Max Effort Ramp Test' : 'Z2 Aerobic',
         description: w === totalWeeks ? 'FTP validation test to gauge aerobic fitness gains.' : 'Easy aerobic cruising.',
         intervalStructure: [
-          { phase: 'Warmup', durationMinutes: 15, targetZone: 'Z1-Z2 Progressive', targetDescription: 'Progressive openers' },
-          { phase: 'Main Effort', durationMinutes: 35, targetZone: w === totalWeeks ? 'Ramp Protocol' : 'Z2 Endurance', targetDescription: 'Assess metabolic ceiling' },
-          { phase: 'Cooldown', durationMinutes: 10, targetZone: 'Z1 Flush', targetDescription: 'Full recovery' },
+          { phase: 'Warmup', durationMinutes: Math.round(sunMin * 0.25), targetZone: 'Z1-Z2 Progressive', targetDescription: 'Progressive openers' },
+          { phase: 'Main Effort', durationMinutes: Math.round(sunMin * 0.55), targetZone: w === totalWeeks ? 'Ramp Protocol' : 'Z2 Endurance', targetDescription: 'Assess metabolic ceiling' },
+          { phase: 'Cooldown', durationMinutes: Math.round(sunMin * 0.20), targetZone: 'Z1 Flush', targetDescription: 'Full recovery' },
         ],
       });
     } else {
       // Normal Training Week
+      const tueMin = roundTo5(totalWeekMinutes * 0.22, 25);
+      const wedMin = roundTo5(totalWeekMinutes * 0.18, 20);
+      const thuMin = roundTo5(totalWeekMinutes * 0.22, 25);
+      const satMin = roundTo5(totalWeekMinutes * 0.26, 30);
+      const sunMin = Math.max(20, totalWeekMinutes - (tueMin + wedMin + thuMin + satMin));
+
       // Monday: Rest
       workouts.push({
         dayOfWeek: 'Monday',
@@ -216,8 +223,8 @@ function generateDeterministicBasePlan(req: AIBasePlanRequest): AIBaseTrainingPl
           ? `Sweet Spot Intervals (${w + 2}x${8 + w}min)`
           : `VO2 Max Intervals (${w + 3}x3min)`,
         sport,
-        durationMinutes: 75 + w * 5,
-        plannedTSS: Math.round(65 + w * 6),
+        durationMinutes: tueMin,
+        plannedTSS: Math.round((tueMin / 60) * (isSweetSpot ? 72 : 82)),
         intensity: isSweetSpot ? 'Sweet Spot' : 'VO2 Max',
         targetZone: isSweetSpot
           ? `88-93% FTP (${Math.round(athleteFtpWatts * 0.9)}W) / ${Math.round(athleteLthrBpm * 0.94)} BPM`
@@ -226,9 +233,9 @@ function generateDeterministicBasePlan(req: AIBasePlanRequest): AIBaseTrainingPl
           ? 'Sustained muscular endurance intervals right at the sweet spot border to expand aerobic threshold without high autonomic stress.'
           : 'High-intensity intervals designed to drive cardiac stroke volume and plasma volume expansion.',
         intervalStructure: [
-          { phase: 'Warmup', durationMinutes: 15, targetZone: 'Z1-Z2', targetDescription: 'Gradual ramp with 3x30s high-cadence openers' },
-          { phase: 'Interval Blocks', durationMinutes: 45 + w * 5, targetZone: isSweetSpot ? 'Z4 Sweet Spot' : 'Z5 VO2 Max', targetDescription: 'Main work sets with 3-5min recovery valleys' },
-          { phase: 'Cooldown', durationMinutes: 15, targetZone: 'Z1 Recovery', targetDescription: 'Low-cadence flush spin' },
+          { phase: 'Warmup', durationMinutes: Math.round(tueMin * 0.2), targetZone: 'Z1-Z2', targetDescription: 'Gradual ramp with 3x30s high-cadence openers' },
+          { phase: 'Interval Blocks', durationMinutes: Math.round(tueMin * 0.65), targetZone: isSweetSpot ? 'Z4 Sweet Spot' : 'Z5 VO2 Max', targetDescription: 'Main work sets with recovery valleys' },
+          { phase: 'Cooldown', durationMinutes: Math.round(tueMin * 0.15), targetZone: 'Z1 Recovery', targetDescription: 'Low-cadence flush spin' },
         ],
       });
       // Wednesday: Z2 Base
@@ -237,15 +244,15 @@ function generateDeterministicBasePlan(req: AIBasePlanRequest): AIBaseTrainingPl
         dayOffset: 2,
         title: 'Aerobic Base Endurance Builder',
         sport,
-        durationMinutes: 60 + w * 5,
-        plannedTSS: Math.round(45 + w * 4),
+        durationMinutes: wedMin,
+        plannedTSS: Math.round((wedMin / 60) * 50),
         intensity: 'Endurance',
         targetZone: `65-72% FTP (${Math.round(athleteFtpWatts * 0.68)}W) / Z2 Aerobic`,
         description: 'Strict zone 2 endurance riding. Focus on fat oxidation and high pedaling efficiency (90+ RPM).',
         intervalStructure: [
-          { phase: 'Warmup', durationMinutes: 10, targetZone: 'Z1', targetDescription: 'Progressive warmup' },
-          { phase: 'Aerobic Cruise', durationMinutes: 40 + w * 5, targetZone: 'Z2 Aerobic Base', targetDescription: 'Steady uninterrupted aerobic load' },
-          { phase: 'Cooldown', durationMinutes: 10, targetZone: 'Z1', targetDescription: 'Light spin down' },
+          { phase: 'Warmup', durationMinutes: Math.round(wedMin * 0.2), targetZone: 'Z1', targetDescription: 'Progressive warmup' },
+          { phase: 'Aerobic Cruise', durationMinutes: Math.round(wedMin * 0.65), targetZone: 'Z2 Aerobic Base', targetDescription: 'Steady uninterrupted aerobic load' },
+          { phase: 'Cooldown', durationMinutes: Math.round(wedMin * 0.15), targetZone: 'Z1', targetDescription: 'Light spin down' },
         ],
       });
       // Thursday: Quality Session 2
@@ -256,8 +263,8 @@ function generateDeterministicBasePlan(req: AIBasePlanRequest): AIBaseTrainingPl
           ? `Over-Under Threshold Blocks (3x10min)`
           : `Tempo & Cadence Bursts (${w + 1}x12min)`,
         sport,
-        durationMinutes: 75 + w * 5,
-        plannedTSS: Math.round(70 + w * 5),
+        durationMinutes: thuMin,
+        plannedTSS: Math.round((thuMin / 60) * (isSweetSpot ? 75 : 66)),
         intensity: isSweetSpot ? 'Threshold' : 'Tempo',
         targetZone: isSweetSpot
           ? `95% / 105% FTP Alternating (${Math.round(athleteFtpWatts * 1.0)}W)`
@@ -266,9 +273,9 @@ function generateDeterministicBasePlan(req: AIBasePlanRequest): AIBaseTrainingPl
           ? 'Over-under threshold intervals teaching the muscles to process and buffer lactate at race pace.'
           : 'Tempo rhythm block reinforcing muscular resilience and aerobic capacity.',
         intervalStructure: [
-          { phase: 'Warmup', durationMinutes: 15, targetZone: 'Z1-Z2', targetDescription: 'Progressive ramp' },
-          { phase: 'Over-Under Sets', durationMinutes: 45 + w * 5, targetZone: 'Z4 Threshold', targetDescription: '2min at 95% FTP, 1min at 105% FTP repeating' },
-          { phase: 'Cooldown', durationMinutes: 15, targetZone: 'Z1', targetDescription: 'Easy recovery spin' },
+          { phase: 'Warmup', durationMinutes: Math.round(thuMin * 0.2), targetZone: 'Z1-Z2', targetDescription: 'Progressive ramp' },
+          { phase: 'Over-Under Sets', durationMinutes: Math.round(thuMin * 0.65), targetZone: 'Z4 Threshold', targetDescription: 'Alternating threshold intervals' },
+          { phase: 'Cooldown', durationMinutes: Math.round(thuMin * 0.15), targetZone: 'Z1', targetDescription: 'Easy recovery spin' },
         ],
       });
       // Friday: Rest or Active Flush
@@ -288,17 +295,17 @@ function generateDeterministicBasePlan(req: AIBasePlanRequest): AIBaseTrainingPl
       workouts.push({
         dayOfWeek: 'Saturday',
         dayOffset: 5,
-        title: `Weekend Long Aerobic Expedition (${Math.round(2 + w * 0.25)}h)`,
+        title: `Weekend Long Aerobic Expedition (${(satMin / 60).toFixed(1)}h)`,
         sport,
-        durationMinutes: 120 + w * 15,
-        plannedTSS: Math.round(110 + w * 12),
+        durationMinutes: satMin,
+        plannedTSS: Math.round((satMin / 60) * 58),
         intensity: 'Endurance',
         targetZone: `62-72% FTP (${Math.round(athleteFtpWatts * 0.67)}W) / Z2 Aerobic`,
         description: 'The cornerstone long ride/run of the micro-cycle. Builds mitochondrial enzyme activity and capillary density in slow-twitch muscle fibers.',
         intervalStructure: [
-          { phase: 'Warmup', durationMinutes: 20, targetZone: 'Z1-Z2', targetDescription: 'Gentle start' },
-          { phase: 'Long Base', durationMinutes: 90 + w * 15, targetZone: 'Z2 Aerobic Base', targetDescription: 'Steady endurance pace, 60g carbs/hr' },
-          { phase: 'Cooldown', durationMinutes: 10, targetZone: 'Z1', targetDescription: 'Easy spin home' },
+          { phase: 'Warmup', durationMinutes: Math.round(satMin * 0.15), targetZone: 'Z1-Z2', targetDescription: 'Gentle start' },
+          { phase: 'Long Base', durationMinutes: Math.round(satMin * 0.72), targetZone: 'Z2 Aerobic Base', targetDescription: 'Steady endurance pace, 60g carbs/hr' },
+          { phase: 'Cooldown', durationMinutes: Math.round(satMin * 0.13), targetZone: 'Z1', targetDescription: 'Easy spin home' },
         ],
       });
       // Sunday: Aerobic Maintenance + Cadence
@@ -307,25 +314,30 @@ function generateDeterministicBasePlan(req: AIBasePlanRequest): AIBaseTrainingPl
         dayOffset: 6,
         title: 'Aerobic Recovery & Cadence Flush',
         sport,
-        durationMinutes: 60 + w * 5,
-        plannedTSS: Math.round(45 + w * 4),
+        durationMinutes: sunMin,
+        plannedTSS: Math.round((sunMin / 60) * 46),
         intensity: 'Endurance',
         targetZone: 'Z2 Low (60-65% FTP)',
         description: 'Light aerobic endurance spin or jog on tired legs to simulate late-event fatigue and stimulate glycogen sparing adaptations.',
         intervalStructure: [
-          { phase: 'Warmup', durationMinutes: 10, targetZone: 'Z1', targetDescription: 'Easy warm' },
-          { phase: 'Steady Spin', durationMinutes: 40 + w * 5, targetZone: 'Z2 Aerobic', targetDescription: 'Smooth high-rpm pedal stroke' },
-          { phase: 'Cooldown', durationMinutes: 10, targetZone: 'Z1 Flush', targetDescription: 'Relaxed spin' },
+          { phase: 'Warmup', durationMinutes: Math.round(sunMin * 0.2), targetZone: 'Z1', targetDescription: 'Easy warm' },
+          { phase: 'Steady Spin', durationMinutes: Math.round(sunMin * 0.65), targetZone: 'Z2 Aerobic', targetDescription: 'Smooth high-rpm pedal stroke' },
+          { phase: 'Cooldown', durationMinutes: Math.round(sunMin * 0.15), targetZone: 'Z1 Flush', targetDescription: 'Relaxed spin' },
         ],
       });
     }
+
+    const calculatedWeekMinutes = workouts.reduce((s, wk) => s + wk.durationMinutes, 0);
+    const calculatedWeekHours = Number((calculatedWeekMinutes / 60).toFixed(1));
+    const calculatedWeekTSS = workouts.reduce((s, wk) => s + wk.plannedTSS, 0);
+    weeklyTSSProgression.push(calculatedWeekTSS);
 
     weeks.push({
       weekNumber: w,
       theme,
       focus,
-      targetWeeklyHours: weekHours,
-      targetWeeklyTSS: weekTSS,
+      targetWeeklyHours: calculatedWeekHours,
+      targetWeeklyTSS: calculatedWeekTSS,
       isRecoveryWeek,
       workouts,
     });
@@ -528,6 +540,32 @@ Include exact microcycle structure for ALL ${planRequest.totalWeeks || 6} weeks:
     if (!parsedPlan.weeks || parsedPlan.weeks.length === 0) {
       throw new Error('Incomplete plan returned from Gemini');
     }
+
+    // Strictly enforce targetWeeklyHours and synchronize workout durations
+    parsedPlan.targetWeeklyHours = planRequest.targetWeeklyHours;
+    parsedPlan.weeks.forEach((week) => {
+      const isRecovery = week.isRecoveryWeek;
+      const expectedHours = isRecovery
+        ? Number((planRequest.targetWeeklyHours * 0.65).toFixed(1))
+        : Number((planRequest.targetWeeklyHours * (1 + (week.weekNumber - 1) * 0.04)).toFixed(1));
+      const expectedMinutes = Math.round(expectedHours * 60);
+
+      const activeWorkouts = (week.workouts || []).filter((w) => w.durationMinutes > 0);
+      const currentMinutes = activeWorkouts.reduce((sum, w) => sum + (w.durationMinutes || 0), 0);
+
+      if (currentMinutes > 0 && Math.abs(currentMinutes - expectedMinutes) > 20) {
+        const ratio = expectedMinutes / currentMinutes;
+        activeWorkouts.forEach((w) => {
+          w.durationMinutes = Math.max(15, Math.round((w.durationMinutes * ratio) / 5) * 5);
+          w.plannedTSS = Math.max(10, Math.round(w.plannedTSS * ratio));
+        });
+      }
+
+      const finalMinutes = (week.workouts || []).reduce((sum, w) => sum + (w.durationMinutes || 0), 0);
+      week.targetWeeklyHours = Number((finalMinutes / 60).toFixed(1));
+      week.targetWeeklyTSS = (week.workouts || []).reduce((sum, w) => sum + (w.plannedTSS || 0), 0);
+    });
+    parsedPlan.weeklyTSSProgression = parsedPlan.weeks.map((w) => w.targetWeeklyTSS);
 
     parsedPlan.createdAt = new Date().toISOString();
     return res.json({

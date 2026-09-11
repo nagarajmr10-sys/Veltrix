@@ -20,6 +20,7 @@ import { PurchasePlansView } from './components/Plans/PurchasePlansView';
 import { PaymentGatewayModal } from './components/Payments/PaymentGatewayModal';
 import { AuthModal } from './components/Auth/AuthModal';
 import { AICoachChatSection } from './components/AI/AICoachChatSection';
+import { SignInSignOutSection } from './components/Auth/SignInSignOutSection';
 import {
   INITIAL_ACTIVITIES,
   INITIAL_ATHLETE,
@@ -42,7 +43,7 @@ import {
   PaymentTransactionReceipt,
   AuthUser,
 } from './types';
-import { Activity as ActivityIcon, BarChart3, TrendingUp, Zap, Heart, ShoppingBag, ArrowLeftRight, Calendar, UserCheck, LogIn, Bot } from 'lucide-react';
+import { Activity as ActivityIcon, BarChart3, TrendingUp, Zap, Heart, ShoppingBag, ArrowLeftRight, Calendar, UserCheck, LogIn, Bot, ShieldCheck, ChevronUp, ChevronDown } from 'lucide-react';
 
 export default function App() {
   // Core Application State
@@ -87,7 +88,8 @@ export default function App() {
   const [selectedDashboardWorkoutId, setSelectedDashboardWorkoutId] = useState<string | null>(null);
   const [isLiveRecordOpen, setIsLiveRecordOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [profileInitialTab, setProfileInitialTab] = useState<'gear' | 'integrations' | 'biometrics' | 'billing'>('gear');
+  const [profileInitialTab, setProfileInitialTab] = useState<'gear' | 'integrations' | 'biometrics' | 'billing' | 'account'>('gear');
+  const [isAuthSectionExpanded, setIsAuthSectionExpanded] = useState(false);
   const [isAIBasePlanOpen, setIsAIBasePlanOpen] = useState(false);
   const [isPaymentGatewayOpen, setIsPaymentGatewayOpen] = useState(false);
   const [paymentConfig, setPaymentConfig] = useState<{
@@ -165,6 +167,10 @@ export default function App() {
     } catch {
       // ignore
     }
+  };
+
+  const handleSwitchUser = (newUser: AuthUser) => {
+    handleAuthSuccess(newUser);
   };
 
   // Handlers
@@ -321,10 +327,14 @@ export default function App() {
         onOpenSignIn={handleOpenSignIn}
         onOpenSignUp={handleOpenSignUp}
         onSignOut={handleSignOut}
+        onOpenAccountSection={() => {
+          setProfileInitialTab('account');
+          setIsProfileOpen(true);
+        }}
       />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 pb-24 sm:pb-28">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 pb-28 sm:pb-32">
         {/* Guest Session Notice if signed out */}
         {!currentUser && (
           <div className="p-4 rounded-2xl bg-gradient-to-r from-neutral-900 via-neutral-900 to-orange-950/40 border border-orange-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl animate-fadeIn">
@@ -333,13 +343,32 @@ export default function App() {
                 <LogIn className="w-5 h-5 text-orange-400" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-white">Guest Athlete Session</h4>
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>Guest Athlete Session</span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                    Unauthenticated
+                  </span>
+                </h4>
                 <p className="text-xs text-neutral-400">
-                  Sign in or create a free account to sync your PMC power curve, KOM segments, and AI training plans.
+                  Sign in or create an account to sync your PMC power curve, KOM segments, AI training plans, and gear mileage.
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              <button
+                id="guest-toggle-auth-section-btn"
+                type="button"
+                onClick={() => setIsAuthSectionExpanded(!isAuthSectionExpanded)}
+                className="px-3 py-2 rounded-xl bg-neutral-900 border border-neutral-700 hover:border-orange-500/50 text-neutral-200 hover:text-white font-mono text-xs font-bold transition flex items-center gap-1.5"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{isAuthSectionExpanded ? 'Hide Auth Section' : 'Sign In / Sign Out Section'}</span>
+                {isAuthSectionExpanded ? (
+                  <ChevronUp className="w-3 h-3 text-neutral-400" />
+                ) : (
+                  <ChevronDown className="w-3 h-3 text-neutral-400" />
+                )}
+              </button>
               <button
                 onClick={handleOpenSignIn}
                 className="px-4 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white font-mono text-xs font-bold transition"
@@ -353,6 +382,33 @@ export default function App() {
                 Create Account
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Dedicated In-Page Sign In / Sign Out Section (Collapsible) */}
+        {isAuthSectionExpanded && (
+          <div className="animate-fadeIn space-y-2">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-xs font-mono text-neutral-400 font-semibold flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                Sign In / Sign Out & Authentication Section
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsAuthSectionExpanded(false)}
+                className="text-xs text-neutral-400 hover:text-white font-mono"
+              >
+                ✕ Close Section
+              </button>
+            </div>
+            <SignInSignOutSection
+              currentUser={currentUser}
+              onSignOut={handleSignOut}
+              onOpenSignIn={handleOpenSignIn}
+              onOpenSignUp={handleOpenSignUp}
+              onSwitchUser={handleSwitchUser}
+              variant="full"
+            />
           </div>
         )}
 
@@ -612,13 +668,14 @@ export default function App() {
         <button
           id="floating-ai-coach-btn"
           onClick={() => setCurrentTab('ai_coach')}
-          className="fixed bottom-20 sm:bottom-22 right-6 z-30 px-4 py-2.5 rounded-full bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-black font-bold text-xs tracking-wide flex items-center gap-2 shadow-xl shadow-orange-500/30 hover:scale-105 active:scale-95 transition group"
+          className="fixed bottom-20 sm:bottom-24 right-4 sm:right-6 z-30 min-h-[44px] px-3.5 sm:px-4 py-2.5 rounded-full bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-black font-bold text-xs tracking-wide flex items-center gap-2 shadow-xl shadow-orange-500/30 hover:scale-105 active:scale-95 transition group touch-manipulation"
           title="Open Veltrix AI Coach"
         >
           <div className="w-5 h-5 rounded-full bg-black/20 flex items-center justify-center">
             <Bot className="w-3.5 h-3.5 text-black" />
           </div>
-          <span>Chat with AI Coach</span>
+          <span className="hidden sm:inline">Chat with AI Coach</span>
+          <span className="sm:hidden font-mono font-bold">AI Coach</span>
           <span className="w-2 h-2 rounded-full bg-black/40 animate-ping" />
         </button>
       )}
@@ -648,6 +705,11 @@ export default function App() {
         initialTab={profileInitialTab}
         profile={athleteProfile}
         gearList={gearList}
+        currentUser={currentUser}
+        onSignOut={handleSignOut}
+        onOpenSignIn={handleOpenSignIn}
+        onOpenSignUp={handleOpenSignUp}
+        onSwitchUser={handleSwitchUser}
         onUpdateProfile={(upd) => setAthleteProfile(upd)}
         onUpdateGear={(upd) => setGearList(upd)}
         onOpenPayment={() => handleOpenPaymentGateway()}

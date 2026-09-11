@@ -30,9 +30,16 @@ import {
   Award,
   Calendar,
   Radio,
+  ShieldCheck,
+  LogIn,
+  LogOut,
+  KeyRound,
 } from 'lucide-react';
-import { AthleteProfile, GearItem, GearCategory, Activity, Segment } from '../../types';
+import { AthleteProfile, GearItem, GearCategory, Activity, Segment, AuthUser } from '../../types';
 import { DeviceIntegrationsSection } from '../Devices/DeviceIntegrationsSection';
+import { SignInSignOutSection } from '../Auth/SignInSignOutSection';
+
+export type ModalTab = 'gear' | 'integrations' | 'biometrics' | 'billing' | 'account';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -45,9 +52,12 @@ interface ProfileModalProps {
   onImportStravaData?: (activities: Activity[], segments: Segment[]) => void;
   onImportActivity?: (activity: Activity) => void;
   initialTab?: ModalTab;
+  currentUser?: AuthUser | null;
+  onSignOut?: () => void;
+  onOpenSignIn?: () => void;
+  onOpenSignUp?: () => void;
+  onSwitchUser?: (user: AuthUser) => void;
 }
-
-type ModalTab = 'gear' | 'integrations' | 'biometrics' | 'billing';
 
 const CATEGORY_DEFAULT_INTERVALS: Record<GearCategory, { intervalKm: number; milestoneName: string; label: string }> = {
   chain: { intervalKm: 2800, milestoneName: '0.5% elongation / wear check', label: 'Chain & Drivetrain' },
@@ -71,6 +81,11 @@ export const AthleteProfileModal: React.FC<ProfileModalProps> = ({
   onImportStravaData,
   onImportActivity,
   initialTab = 'gear',
+  currentUser,
+  onSignOut,
+  onOpenSignIn,
+  onOpenSignUp,
+  onSwitchUser,
 }) => {
   const [activeTab, setActiveTab] = useState<ModalTab>(initialTab);
 
@@ -498,6 +513,28 @@ export const AthleteProfileModal: React.FC<ProfileModalProps> = ({
           >
             <CreditCard className="w-4 h-4 text-amber-400" />
             <span>Membership & Billing</span>
+          </button>
+
+          <button
+            id="profile-tab-account-auth"
+            onClick={() => setActiveTab('account')}
+            className={`px-4 py-2.5 text-xs font-bold rounded-t-xl transition flex items-center gap-2 border-b-2 whitespace-nowrap ${
+              activeTab === 'account'
+                ? 'border-orange-500 text-white bg-neutral-900'
+                : 'border-transparent text-neutral-400 hover:text-neutral-200'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>Sign In / Sign Out</span>
+            {currentUser ? (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                Online
+              </span>
+            ) : (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                Guest
+              </span>
+            )}
           </button>
         </div>
 
@@ -1118,6 +1155,22 @@ export const AthleteProfileModal: React.FC<ProfileModalProps> = ({
               </div>
             </div>
           )}
+
+          {/* ======================================================== */}
+          {/* TAB 5: SIGN IN / SIGN OUT & SESSION MANAGEMENT           */}
+          {/* ======================================================== */}
+          {activeTab === 'account' && (
+            <div className="space-y-6 animate-fadeIn">
+              <SignInSignOutSection
+                currentUser={currentUser ?? null}
+                onSignOut={onSignOut || (() => {})}
+                onOpenSignIn={onOpenSignIn || (() => {})}
+                onOpenSignUp={onOpenSignUp || (() => {})}
+                onSwitchUser={onSwitchUser}
+                variant="embedded"
+              />
+            </div>
+          )}
         </div>
 
         {/* Modal Footer */}
@@ -1127,6 +1180,7 @@ export const AthleteProfileModal: React.FC<ProfileModalProps> = ({
             {activeTab === 'integrations' && (profile.stravaIntegration?.isConnected ? 'Strava Connected' : 'Strava Ready')}
             {activeTab === 'biometrics' && `${wattsPerKg} W/kg threshold`}
             {activeTab === 'billing' && (profile.isPro ? 'Pro Active' : 'Free Tier')}
+            {activeTab === 'account' && (currentUser ? `Active Session: ${currentUser.name}` : 'Guest Session (Unauthenticated)')}
           </div>
           <div className="flex items-center gap-2">
             <button

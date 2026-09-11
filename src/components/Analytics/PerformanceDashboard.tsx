@@ -43,6 +43,7 @@ import { formatDuration, formatSpeed, formatPace } from '../../utils/geoUtils';
 import { ComparePerformanceView } from './ComparePerformanceView';
 import { CompareWorkoutsView } from './CompareWorkoutsView';
 import { AIRecoveryInsightsPanel } from './AIRecoveryInsightsPanel';
+import { WeeklyGoalWidget } from './WeeklyGoalWidget';
 import { MonthlyPerformanceReportModal } from './MonthlyPerformanceReportModal';
 import { generateHistoricalPMC } from '../../data/initialData';
 
@@ -667,6 +668,12 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
             metrics={resolvedPmcMetrics}
             onNavigateToPMC={onNavigateToPMC}
             onExportPDF={() => setShowReportModal(true)}
+          />
+
+          {/* Weekly Goal Widget (Tracking Distance & TSS Targets) */}
+          <WeeklyGoalWidget
+            activities={activities}
+            profile={profile}
           />
 
           {/* Top Telemetry KPI Cards */}

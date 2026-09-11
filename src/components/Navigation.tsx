@@ -20,16 +20,27 @@ import {
   Watch,
   Bot,
   MessageSquare,
+  ShieldCheck,
 } from 'lucide-react';
 import { AthleteProfile } from '../types';
+import { GPSBottomCenterSection } from './LiveTracker/GPSBottomCenterSection';
 
 export type NavTab = 'feed' | 'analytics' | 'challenges' | 'calendar' | 'plans' | 'ai_coach';
+
+export interface NavItemDef {
+  id: NavTab;
+  label: string;
+  mobileLabel: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: number;
+  isAi?: boolean;
+}
 
 interface NavigationProps {
   currentTab: NavTab;
   onTabChange: (tab: NavTab) => void;
   onOpenLiveRecord: () => void;
-  onOpenProfile: (tab?: 'gear' | 'integrations' | 'biometrics' | 'billing') => void;
+  onOpenProfile: (tab?: 'gear' | 'integrations' | 'biometrics' | 'billing' | 'account') => void;
   onOpenAIBasePlan?: () => void;
   onOpenPayment?: () => void;
   profile: AthleteProfile;
@@ -39,6 +50,7 @@ interface NavigationProps {
   onOpenSignIn?: () => void;
   onOpenSignUp?: () => void;
   onSignOut?: () => void;
+  onOpenAccountSection?: () => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -55,18 +67,66 @@ export const Navigation: React.FC<NavigationProps> = ({
   onOpenSignIn,
   onOpenSignUp,
   onSignOut,
+  onOpenAccountSection,
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const wKg = (profile.ftpWatts / profile.weightKg).toFixed(1);
 
-  const navItems = [
-    { id: 'feed' as NavTab, label: 'Activity Feed', shortLabel: 'Activity Feed', mobileLabel: 'Feed', icon: Activity },
-    { id: 'analytics' as NavTab, label: 'Performance & Training', shortLabel: 'Performance & Training', mobileLabel: 'Performance & Training', icon: BarChart3 },
-    { id: 'ai_coach' as NavTab, label: 'AI Coach', shortLabel: 'AI Coach', mobileLabel: 'AI Coach', icon: Bot, isAi: true },
-    { id: 'challenges' as NavTab, label: 'Challenges & KOMs', shortLabel: 'Challenges', mobileLabel: 'Challenges', icon: Trophy },
-    { id: 'calendar' as NavTab, label: 'Training Calendar', shortLabel: 'Training Calendar', mobileLabel: 'Calendar', icon: Calendar, badge: missedWorkoutsCount },
-    { id: 'plans' as NavTab, label: 'Training Plans', shortLabel: 'Training Plans', mobileLabel: 'Plans', icon: ShoppingBag },
+  const leftNavItems: NavItemDef[] = [
+    { id: 'feed', label: 'Activity Feed', mobileLabel: 'Feed', icon: Activity },
+    { id: 'analytics', label: 'Performance & Training', mobileLabel: 'Analytics', icon: BarChart3 },
+    { id: 'ai_coach', label: 'AI Coach', mobileLabel: 'AI Coach', icon: Bot, isAi: true },
   ];
+
+  const rightNavItems: NavItemDef[] = [
+    { id: 'challenges', label: 'Challenges & KOMs', mobileLabel: 'KOMs', icon: Trophy },
+    { id: 'calendar', label: 'Training Calendar', mobileLabel: 'Calendar', icon: Calendar, badge: missedWorkoutsCount },
+    { id: 'plans', label: 'Training Plans', mobileLabel: 'Plans', icon: ShoppingBag },
+  ];
+
+  const allNavItems: NavItemDef[] = [...leftNavItems, ...rightNavItems];
+
+  const renderNavTabButton = (item: NavItemDef) => {
+    const Icon = item.icon;
+    const isActive = currentTab === item.id;
+    return (
+      <button
+        key={item.id}
+        id={`nav-link-${item.id}`}
+        onClick={() => onTabChange(item.id)}
+        className={`relative flex flex-col items-center justify-center gap-0.5 sm:gap-1 min-h-[48px] min-w-[44px] sm:min-w-[56px] px-1 sm:px-2.5 md:px-3 py-1 sm:py-1.5 rounded-xl text-xs font-semibold tracking-wide transition select-none group touch-manipulation active:scale-95 flex-1 sm:flex-initial ${
+          isActive
+            ? 'bg-neutral-900 text-orange-400 border border-orange-500/30 shadow-md shadow-orange-500/10'
+            : 'text-neutral-400 hover:text-white hover:bg-neutral-900/60 border border-transparent'
+        }`}
+        title={item.label}
+        aria-label={item.label}
+      >
+        {/* Active Indicator Top Accent Bar */}
+        {isActive && (
+          <span className="absolute -top-1 sm:-top-2 left-1/2 -translate-x-1/2 w-6 sm:w-10 h-0.5 bg-gradient-to-r from-orange-500 to-amber-400 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
+        )}
+
+        <div className="relative flex items-center justify-center">
+          <Icon
+            className={`w-5 h-5 sm:w-5 sm:h-5 transition-transform group-hover:scale-110 ${
+              isActive ? 'text-orange-400' : 'text-neutral-400 group-hover:text-neutral-200'
+            }`}
+          />
+          {Boolean(item.badge && item.badge > 0) && (
+            <span className="absolute -top-1.5 -right-2 px-1 py-0.2 rounded-full bg-amber-400 text-black text-[9px] font-mono font-bold animate-pulse leading-none shadow-sm">
+              {item.badge}
+            </span>
+          )}
+        </div>
+
+        <span className="text-[10px] sm:text-xs font-semibold text-center leading-tight whitespace-nowrap">
+          <span className="sm:hidden">{item.mobileLabel}</span>
+          <span className="hidden sm:inline">{item.label}</span>
+        </span>
+      </button>
+    );
+  };
 
   return (
     <>
@@ -97,7 +157,7 @@ export const Navigation: React.FC<NavigationProps> = ({
 
             {/* Desktop Nav Links in Header */}
             <nav className="hidden lg:flex items-center gap-1">
-              {navItems.map((item) => {
+              {allNavItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = currentTab === item.id;
                 return (
@@ -126,17 +186,17 @@ export const Navigation: React.FC<NavigationProps> = ({
           </div>
 
         {/* Right Cockpit Actions */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 sm:gap-2.5">
           {/* Missed Workout Alert Header Button */}
           {missedWorkoutsCount > 0 && onOpenMissedWorkoutsAlert && (
             <button
               id="nav-missed-workout-alert-btn"
               onClick={onOpenMissedWorkoutsAlert}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 hover:text-amber-300 text-xs font-mono font-bold transition shadow-sm"
+              className="flex items-center gap-1.5 min-h-[44px] px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 hover:text-amber-300 text-xs font-mono font-bold transition shadow-sm touch-manipulation active:scale-95"
               title={`${missedWorkoutsCount} missed workout${missedWorkoutsCount > 1 ? 's' : ''} require attention`}
             >
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-              <span className="hidden sm:inline">Missed Workout</span>
+              <AlertTriangle className="w-4 h-4 text-amber-400 animate-pulse" />
+              <span className="hidden sm:inline">Missed</span>
               <span className="px-1.5 py-0.5 rounded bg-amber-400 text-black text-[10px] font-black leading-none">
                 {missedWorkoutsCount}
               </span>
@@ -148,10 +208,10 @@ export const Navigation: React.FC<NavigationProps> = ({
             <button
               id="nav-ai-base-plan-btn"
               onClick={onOpenAIBasePlan}
-              className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-900 border border-neutral-700/80 hover:border-orange-500/60 text-neutral-200 hover:text-orange-400 text-xs font-bold transition shadow-sm"
+              className="hidden md:flex items-center gap-1.5 min-h-[44px] px-3 py-2 rounded-xl bg-neutral-900 border border-neutral-700/80 hover:border-orange-500/60 text-neutral-200 hover:text-orange-400 text-xs font-bold transition shadow-sm"
               title="Generate AI Base Training Plan"
             >
-              <Sparkles className="w-3.5 h-3.5 text-orange-400" />
+              <Sparkles className="w-4 h-4 text-orange-400" />
               <span>AI Base Plan</span>
             </button>
           )}
@@ -161,27 +221,27 @@ export const Navigation: React.FC<NavigationProps> = ({
             <button
               id="nav-membership-pro-btn"
               onClick={onOpenPayment}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-mono font-bold transition shadow-sm ${
+              className={`flex items-center gap-1.5 min-h-[44px] px-2.5 sm:px-3 py-2 rounded-xl text-xs font-mono font-bold transition shadow-sm touch-manipulation active:scale-95 ${
                 profile.isPro
                   ? 'bg-neutral-900 border border-amber-500/40 text-amber-300 hover:bg-neutral-850 hover:border-amber-400'
                   : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-black uppercase tracking-wider shadow-amber-500/20'
               }`}
               title={profile.isPro ? 'Manage Veltrix Pro Subscription & Billing' : 'Upgrade to Veltrix Pro ($79/yr)'}
             >
-              <Sparkles className={`w-3.5 h-3.5 ${profile.isPro ? 'text-amber-400' : 'text-black'}`} />
+              <Sparkles className={`w-4 h-4 ${profile.isPro ? 'text-amber-400' : 'text-black'}`} />
               <span className="hidden sm:inline">{profile.isPro ? 'PRO ATHLETE' : 'PAYMENT GATEWAY'}</span>
               <span className="sm:hidden">{profile.isPro ? 'PRO' : 'PAY'}</span>
             </button>
           )}
 
-          {/* Main Record Activity Trigger */}
+          {/* Main Record Activity Trigger (Header) */}
           <button
             id="main-record-btn"
             onClick={onOpenLiveRecord}
-            className="px-3.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-black font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-orange-500/25 transition active:scale-95"
+            className="min-h-[44px] px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-black font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-orange-500/25 transition active:scale-95 touch-manipulation"
           >
             <span className="w-2 h-2 rounded-full bg-black animate-pulse" />
-            <Radio className="w-4 h-4 stroke-[2.5]" />
+            <Radio className="w-4 h-4 sm:w-4.5 sm:h-4.5 stroke-[2.5]" />
             <span className="hidden sm:inline">Record Activity</span>
             <span className="sm:hidden">Record</span>
           </button>
@@ -192,19 +252,19 @@ export const Navigation: React.FC<NavigationProps> = ({
               <button
                 id="athlete-profile-button"
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center gap-2 p-1.5 pr-2.5 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 transition"
+                className="flex items-center gap-1.5 sm:gap-2 min-h-[44px] p-1 sm:p-1.5 sm:pr-2.5 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 transition touch-manipulation active:scale-95"
                 title="Athlete Account & Profile"
               >
                 <img
                   src={profile.avatar}
                   alt={profile.name}
-                  className="w-7 h-7 rounded-lg object-cover"
+                  className="w-8 h-8 rounded-lg object-cover"
                 />
                 <div className="hidden lg:block text-left text-xs font-mono">
                   <div className="font-bold text-white leading-none truncate max-w-[90px]">{profile.name}</div>
                   <div className="text-[10px] text-neutral-400 mt-0.5">{profile.ftpWatts}W · {wKg} W/kg</div>
                 </div>
-                <ChevronDown className="w-3.5 h-3.5 text-neutral-400" />
+                <ChevronDown className="w-4 h-4 text-neutral-400" />
               </button>
 
               {/* User Dropdown Menu */}
@@ -230,6 +290,27 @@ export const Navigation: React.FC<NavigationProps> = ({
                   </div>
 
                   <div className="py-1">
+                    <button
+                      id="nav-user-account-auth-btn"
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        if (onOpenAccountSection) {
+                          onOpenAccountSection();
+                        } else {
+                          onOpenProfile('account');
+                        }
+                      }}
+                      className="w-full px-3 py-2 text-left text-xs text-neutral-300 hover:text-white hover:bg-neutral-900 flex items-center justify-between transition"
+                    >
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                        <span>Sign In / Sign Out Section</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                        Auth
+                      </span>
+                    </button>
+
                     <button
                       id="nav-user-profile-btn"
                       onClick={() => {
@@ -323,9 +404,9 @@ export const Navigation: React.FC<NavigationProps> = ({
                 <button
                   id="nav-sign-in-btn"
                   onClick={onOpenSignIn}
-                  className="px-3 py-2 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-white text-xs font-mono font-bold flex items-center gap-1.5 transition"
+                  className="min-h-[44px] px-3.5 py-2 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-white text-xs font-mono font-bold flex items-center gap-1.5 transition touch-manipulation active:scale-95"
                 >
-                  <LogIn className="w-3.5 h-3.5 text-neutral-400" />
+                  <LogIn className="w-4 h-4 text-neutral-400" />
                   <span>Sign In</span>
                 </button>
               )}
@@ -333,9 +414,9 @@ export const Navigation: React.FC<NavigationProps> = ({
                 <button
                   id="nav-sign-up-btn"
                   onClick={onOpenSignUp}
-                  className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-orange-400 text-xs font-mono font-bold transition"
+                  className="hidden sm:flex items-center gap-1.5 min-h-[44px] px-3.5 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-orange-400 text-xs font-mono font-bold transition touch-manipulation active:scale-95"
                 >
-                  <UserPlus className="w-3.5 h-3.5" />
+                  <UserPlus className="w-4 h-4" />
                   <span>Register</span>
                 </button>
               )}
@@ -345,62 +426,28 @@ export const Navigation: React.FC<NavigationProps> = ({
       </div>
     </header>
 
-      {/* Universal Bottom Navigation Bar for All Devices */}
+      {/* Universal Bottom Navigation Bar with Center GPS Record Section */}
       <nav
         id="bottom-app-navigation-bar"
         aria-label="Application Tabs"
-        className="fixed bottom-0 inset-x-0 z-40 bg-neutral-950/95 border-t border-neutral-800/90 backdrop-blur-xl shadow-[0_-8px_25px_rgba(0,0,0,0.6)]"
+        className="fixed bottom-0 inset-x-0 z-40 bg-neutral-950/95 border-t border-neutral-800/90 backdrop-blur-xl shadow-[0_-8px_30px_rgba(0,0,0,0.8)] pb-safe"
       >
         <div className="max-w-6xl mx-auto px-1 sm:px-4 lg:px-8">
-          <div className="flex items-center justify-between sm:justify-center sm:gap-1.5 md:gap-2.5 py-1.5 sm:py-2 overflow-x-auto no-scrollbar">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = currentTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  id={`nav-link-${item.id}`}
-                  onClick={() => onTabChange(item.id)}
-                  className={`relative flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1.5 sm:px-2.5 md:px-3.5 py-1 sm:py-1.5 rounded-xl text-xs font-semibold tracking-wide transition select-none group shrink-0 ${
-                    isActive
-                      ? 'bg-neutral-900 text-orange-400 border border-orange-500/30 shadow-md shadow-orange-500/10'
-                      : 'text-neutral-400 hover:text-white hover:bg-neutral-900/60 border border-transparent'
-                  }`}
-                  title={item.label}
-                >
-                  {/* Active Indicator Top Accent Bar */}
-                  {isActive && (
-                    <span className="absolute -top-1.5 sm:-top-2 left-1/2 -translate-x-1/2 w-8 sm:w-12 h-0.5 bg-gradient-to-r from-orange-500 to-amber-400 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
-                  )}
+          <div className="flex items-center justify-between sm:justify-center sm:gap-2 md:gap-3 py-1 sm:py-1.5">
+            {/* Left Nav Group: Feed, Analytics, AI Coach */}
+            <div className="flex items-center justify-around flex-1 sm:flex-initial sm:gap-2 md:gap-3">
+              {leftNavItems.map((item) => renderNavTabButton(item))}
+            </div>
 
-                  <div className="relative flex items-center justify-center">
-                    <Icon
-                      className={`w-4 h-4 sm:w-4 sm:h-4 transition-transform group-hover:scale-110 ${
-                        isActive ? 'text-orange-400' : 'text-neutral-400 group-hover:text-neutral-200'
-                      }`}
-                    />
-                    {Boolean(item.badge && item.badge > 0) && (
-                      <span className="sm:hidden absolute -top-1 -right-2 px-1 py-0.2 rounded-full bg-amber-400 text-black text-[9px] font-mono font-bold animate-pulse">
-                        {item.badge}
-                      </span>
-                    )}
-                  </div>
+            {/* GPS RECORD SECTION AT THE BOTTOM CENTRE */}
+            <div className="flex items-center justify-center px-1 sm:px-3 shrink-0 z-10">
+              <GPSBottomCenterSection onOpenLiveRecord={onOpenLiveRecord} />
+            </div>
 
-                  <span className="text-[9px] sm:text-xs font-semibold text-center leading-tight whitespace-nowrap">
-                    <span className="sm:hidden">
-                      {item.id === 'analytics' ? 'Performance & Training' : item.mobileLabel}
-                    </span>
-                    <span className="hidden sm:inline">{item.label}</span>
-                  </span>
-
-                  {Boolean(item.badge && item.badge > 0) && (
-                    <span className="hidden sm:inline-flex items-center px-1.5 py-0.2 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-mono font-bold animate-pulse">
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+            {/* Right Nav Group: Challenges, Calendar, Plans */}
+            <div className="flex items-center justify-around flex-1 sm:flex-initial sm:gap-2 md:gap-3">
+              {rightNavItems.map((item) => renderNavTabButton(item))}
+            </div>
           </div>
         </div>
       </nav>
