@@ -456,6 +456,12 @@ export interface PurchasedPlanOrder {
   avgWeeklyTSS: number;
 }
 
+export interface HourlyStepData {
+  hour: number; // 0 - 23
+  label: string; // e.g. "08:00"
+  steps: number;
+}
+
 // Health & Biometrics Telemetry
 export interface HealthBiometricDay {
   date: string; // YYYY-MM-DD
@@ -476,6 +482,13 @@ export interface HealthBiometricDay {
   weightKg: number;
   readinessRecommendation: string;
   syncedWearable?: 'Garmin Connect' | 'Apple Health' | 'Whoop 4.0' | 'Oura Ring Gen 3' | 'Manual Log';
+  steps?: number;
+  stepGoal?: number;
+  activeMinutes?: number;
+  walkingDistanceKm?: number;
+  caloriesBurned?: number;
+  floorsClimbed?: number;
+  hourlySteps?: HourlyStepData[];
 }
 
 export interface WearableDeviceStatus {

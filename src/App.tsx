@@ -21,6 +21,9 @@ import { PaymentGatewayModal } from './components/Payments/PaymentGatewayModal';
 import { AuthModal } from './components/Auth/AuthModal';
 import { AICoachChatSection } from './components/AI/AICoachChatSection';
 import { SignInSignOutSection } from './components/Auth/SignInSignOutSection';
+import { HealthAndStepsTracker } from './components/Health/HealthAndStepsTracker';
+import { DailyStepsHealthWidget } from './components/Health/DailyStepsHealthWidget';
+import { generateHealthBiometricsHistory } from './data/healthAndPerformanceData';
 import {
   INITIAL_ACTIVITIES,
   INITIAL_ATHLETE,
@@ -42,13 +45,19 @@ import {
   PurchasedPlanOrder,
   PaymentTransactionReceipt,
   AuthUser,
+  HealthBiometricDay,
 } from './types';
-import { Activity as ActivityIcon, BarChart3, TrendingUp, Zap, Heart, ShoppingBag, ArrowLeftRight, Calendar, UserCheck, LogIn, Bot, ShieldCheck, ChevronUp, ChevronDown } from 'lucide-react';
+import { Activity as ActivityIcon, BarChart3, TrendingUp, Zap, Heart, ShoppingBag, ArrowLeftRight, Calendar, UserCheck, LogIn, Bot, ShieldCheck, ChevronUp, ChevronDown, Footprints } from 'lucide-react';
 
 export default function App() {
   // Core Application State
   const [currentTab, setCurrentTab] = useState<NavTab>('analytics');
-  const [analyticsSubTab, setAnalyticsSubTab] = useState<'dashboard' | 'trends' | 'compare_workouts' | 'compare' | 'pmc' | 'curves' | 'zones'>('dashboard');
+  const [analyticsSubTab, setAnalyticsSubTab] = useState<'dashboard' | 'trends' | 'health' | 'compare_workouts' | 'compare' | 'pmc' | 'curves' | 'zones'>('dashboard');
+
+  // Daily Steps & Health Biometrics State
+  const [biometricsHistory, setBiometricsHistory] = useState<HealthBiometricDay[]>(() =>
+    generateHealthBiometricsHistory()
+  );
 
   // Authenticated User State (defaults to active athlete Alex Rivera, persisted in localStorage)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
@@ -117,6 +126,43 @@ export default function App() {
       }));
     }
     setIsPaymentGatewayOpen(true);
+  };
+
+  const handleQuickAddSteps = (amount: number) => {
+    setBiometricsHistory((prev) => {
+      const updated = [...prev];
+      const lastIdx = updated.length - 1;
+      const currentSteps = updated[lastIdx]?.steps ?? athleteProfile.todaySteps ?? 9420;
+      const newSteps = currentSteps + amount;
+      updated[lastIdx] = {
+        ...updated[lastIdx],
+        steps: newSteps,
+      };
+      return updated;
+    });
+    setAthleteProfile((prev) => ({
+      ...prev,
+      todaySteps: (prev.todaySteps ?? 9420) + amount,
+    }));
+  };
+
+  const handleQuickAddWater = (ml: number) => {
+    setBiometricsHistory((prev) => {
+      const updated = [...prev];
+      const lastIdx = updated.length - 1;
+      const currentLitres = updated[lastIdx]?.hydrationLitres ?? 3.2;
+      const newLitres = Number((currentLitres + ml / 1000).toFixed(1));
+      updated[lastIdx] = {
+        ...updated[lastIdx],
+        hydrationLitres: newLitres,
+      };
+      return updated;
+    });
+  };
+
+  const handleOpenHealthSteps = () => {
+    setCurrentTab('analytics');
+    setAnalyticsSubTab('health');
   };
 
   const handlePaymentSuccess = (receipt: PaymentTransactionReceipt) => {
@@ -331,6 +377,7 @@ export default function App() {
           setProfileInitialTab('account');
           setIsProfileOpen(true);
         }}
+        onOpenHealthSteps={handleOpenHealthSteps}
       />
 
       {/* Main Container */}
@@ -426,14 +473,24 @@ export default function App() {
         )}
         {/* TAB 1: ACTIVITY FEED */}
         {currentTab === 'feed' && (
-          <ActivityFeedView
-            activities={activities}
-            onSelectActivity={(act) => {
-              setSelectedActivity(act);
-            }}
-            onToggleKudos={handleToggleKudos}
-            onOpenLiveRecord={() => setIsLiveRecordOpen(true)}
-          />
+          <div className="space-y-6">
+            <DailyStepsHealthWidget
+              profile={athleteProfile}
+              todayHealth={biometricsHistory[biometricsHistory.length - 1]}
+              onOpenFullTracker={handleOpenHealthSteps}
+              onQuickAddSteps={handleQuickAddSteps}
+              onQuickAddWater={handleQuickAddWater}
+            />
+
+            <ActivityFeedView
+              activities={activities}
+              onSelectActivity={(act) => {
+                setSelectedActivity(act);
+              }}
+              onToggleKudos={handleToggleKudos}
+              onOpenLiveRecord={() => setIsLiveRecordOpen(true)}
+            />
+          </div>
         )}
 
         {/* TAB 2: PERFORMANCE & ANALYTICS DASHBOARD */}
@@ -453,6 +510,19 @@ export default function App() {
                 >
                   <BarChart3 className="w-4 h-4" />
                   <span>Performance Dashboard</span>
+                </button>
+
+                <button
+                  id="subtab-health-btn"
+                  onClick={() => setAnalyticsSubTab('health')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 whitespace-nowrap transition ${
+                    analyticsSubTab === 'health'
+                      ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-black shadow-md shadow-orange-500/20'
+                      : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                  }`}
+                >
+                  <Footprints className="w-4 h-4 text-orange-400" />
+                  <span>Daily Steps & Health</span>
                 </button>
 
                 <button
@@ -554,6 +624,32 @@ export default function App() {
                 pmcMetrics={pmcMetrics}
                 onNavigateToPMC={() => setAnalyticsSubTab('pmc')}
                 onNavigateToTrends={() => setAnalyticsSubTab('trends')}
+              />
+            )}
+
+            {/* Sub-tab: Daily Steps & Health Telemetry Tracker */}
+            {analyticsSubTab === 'health' && (
+              <HealthAndStepsTracker
+                profile={athleteProfile}
+                initialHistory={biometricsHistory}
+                onUpdateProfile={(updated) => {
+                  setAthleteProfile((prev) => ({ ...prev, ...updated }));
+                }}
+                onLogBiometrics={(newEntry) => {
+                  setBiometricsHistory((prev) => {
+                    const updated = [...prev];
+                    const existingIdx = updated.findIndex((d) => d.date === newEntry.date);
+                    if (existingIdx >= 0) {
+                      updated[existingIdx] = newEntry;
+                    } else {
+                      updated.push(newEntry);
+                    }
+                    return updated;
+                  });
+                  if (newEntry.steps) {
+                    setAthleteProfile((prev) => ({ ...prev, todaySteps: newEntry.steps }));
+                  }
+                }}
               />
             )}
 

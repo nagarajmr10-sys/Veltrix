@@ -47,13 +47,43 @@ export const INITIAL_WEARABLES: WearableDeviceStatus[] = [
   },
 ];
 
-// Generate 14 days of realistic physiological recovery metrics
+// Generate 14 days of realistic physiological recovery metrics and steps
 export function generateHealthBiometricsHistory(): HealthBiometricDay[] {
   const days: HealthBiometricDay[] = [];
   const today = new Date();
 
   const baselineHRV = 72;
   const baselineRHR = 42;
+
+  // Typical hourly distribution for today (e.g., morning walk, lunch stroll, evening walk)
+  const generateTodayHourlySteps = (totalToday: number) => {
+    const hourlyDistributionWeights = [
+      0, 0, 0, 0, 0, 0.02, 0.08, 0.14, 0.10, 0.06, 0.05, 0.09, 0.12, 0.08, 0.06, 0.04, 0.06, 0.05, 0.03, 0.02, 0, 0, 0, 0
+    ];
+    return hourlyDistributionWeights.map((weight, hour) => ({
+      hour,
+      label: `${hour.toString().padStart(2, '0')}:00`,
+      steps: Math.round(totalToday * weight),
+    }));
+  };
+
+  // Pre-configured realistic step counts over 14 days
+  const stepCounts14Days = [
+    9420,  // Today
+    12450, // Yesterday
+    10820, // 2 days ago
+    8640,  // 3 days ago
+    14120, // 4 days ago
+    11300, // 5 days ago
+    10250, // 6 days ago
+    9810,  // 7 days ago
+    13200, // 8 days ago
+    11050, // 9 days ago
+    8940,  // 10 days ago
+    12680, // 11 days ago
+    10420, // 12 days ago
+    11890, // 13 days ago
+  ];
 
   for (let i = 13; i >= 0; i--) {
     const d = new Date(today);
@@ -86,6 +116,13 @@ export function generateHealthBiometricsHistory(): HealthBiometricDay[] {
       recommendation = 'Moderate recovery state. Standard aerobic endurance and tempo maintenance advised.';
     }
 
+    const steps = stepCounts14Days[i] ?? 10000;
+    const stepGoal = 10000;
+    const activeMinutes = Math.round((steps / 1000) * 8.5); // ~80 mins for 9.5k steps
+    const walkingDistanceKm = Number(((steps * 0.78) / 1000).toFixed(2)); // ~0.78m average stride
+    const caloriesBurned = Math.round(steps * 0.043 + 420); // active walking calories
+    const floorsClimbed = Math.round((steps / 1000) * 1.8 + Math.random() * 4);
+
     days.push({
       date: dateStr,
       recoveryScore,
@@ -105,6 +142,13 @@ export function generateHealthBiometricsHistory(): HealthBiometricDay[] {
       weightKg: Number((69.2 + (Math.random() * 0.6 - 0.3)).toFixed(1)),
       readinessRecommendation: recommendation,
       syncedWearable: i === 0 ? 'Whoop 4.0' : i % 2 === 0 ? 'Garmin Connect' : 'Oura Ring Gen 3',
+      steps,
+      stepGoal,
+      activeMinutes,
+      walkingDistanceKm,
+      caloriesBurned,
+      floorsClimbed,
+      hourlySteps: i === 0 ? generateTodayHourlySteps(steps) : undefined,
     });
   }
 

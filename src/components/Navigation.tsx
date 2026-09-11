@@ -21,6 +21,8 @@ import {
   Bot,
   MessageSquare,
   ShieldCheck,
+  Footprints,
+  Heart,
 } from 'lucide-react';
 import { AthleteProfile } from '../types';
 import { GPSBottomCenterSection } from './LiveTracker/GPSBottomCenterSection';
@@ -51,6 +53,7 @@ interface NavigationProps {
   onOpenSignUp?: () => void;
   onSignOut?: () => void;
   onOpenAccountSection?: () => void;
+  onOpenHealthSteps?: () => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -68,6 +71,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   onOpenSignUp,
   onSignOut,
   onOpenAccountSection,
+  onOpenHealthSteps,
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const wKg = (profile.ftpWatts / profile.weightKg).toFixed(1);
@@ -200,6 +204,28 @@ export const Navigation: React.FC<NavigationProps> = ({
               <span className="px-1.5 py-0.5 rounded bg-amber-400 text-black text-[10px] font-black leading-none">
                 {missedWorkoutsCount}
               </span>
+            </button>
+          )}
+
+          {/* Daily Steps & Health Quick Trigger */}
+          {onOpenHealthSteps && (
+            <button
+              id="nav-daily-steps-quick-btn"
+              onClick={onOpenHealthSteps}
+              className="hidden lg:flex items-center gap-2 min-h-[44px] px-3 py-1.5 rounded-xl bg-neutral-900 border border-neutral-750 hover:border-orange-500/60 text-xs font-mono transition touch-manipulation active:scale-95"
+              title="View Daily Steps & Health Tracker"
+            >
+              <div className="w-6 h-6 rounded-lg bg-orange-500/15 flex items-center justify-center text-orange-400">
+                <Footprints className="w-3.5 h-3.5" />
+              </div>
+              <div className="text-left">
+                <div className="text-white font-bold text-xs leading-tight">
+                  {(profile.todaySteps ?? 9420).toLocaleString()}
+                </div>
+                <div className="text-[9px] text-neutral-400 leading-none">
+                  / {(profile.dailyStepGoal ?? 10000).toLocaleString()} steps
+                </div>
+              </div>
             </button>
           )}
 
@@ -340,6 +366,25 @@ export const Navigation: React.FC<NavigationProps> = ({
                         {(profile.platformIntegrations?.filter(p => p.isConnected).length || 0) + (profile.hardwareSensors?.filter(s => s.isConnected).length || 0)} Connected
                       </span>
                     </button>
+
+                    {onOpenHealthSteps && (
+                      <button
+                        id="nav-user-daily-steps-btn"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onOpenHealthSteps();
+                        }}
+                        className="w-full px-3 py-2 text-left text-xs text-neutral-300 hover:text-white hover:bg-neutral-900 flex items-center justify-between transition"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Footprints className="w-4 h-4 text-orange-400" />
+                          <span>Daily Steps & Health Tracker</span>
+                        </div>
+                        <span className="text-[10px] font-mono text-orange-400 font-bold bg-orange-500/10 px-1.5 py-0.5 rounded border border-orange-500/20">
+                          {(profile.todaySteps ?? 9420).toLocaleString()}
+                        </span>
+                      </button>
+                    )}
 
                     {onOpenPayment && (
                       <button
